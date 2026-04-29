@@ -875,67 +875,114 @@
 
   /* === Mobile / responsive === */
   @media (max-width: 768px) {
-    .container { padding: 16px 12px 60px; }
-    .logo { font-size: 2rem; }
-    .logo-icon { font-size: 1.7rem; }
-    .tagline { font-size: 0.85rem; }
-    header { margin-bottom: 24px; }
+    body { font-size: 16px; }
+    .container { padding: 16px 14px 80px; }
+    .logo { font-size: 2.4rem; }
+    .logo-icon { font-size: 2rem; }
+    .tagline { font-size: 1rem; }
+    header { margin-bottom: 28px; padding-top: 56px; }
 
-    .search-box input { padding: 14px 18px 14px 48px; font-size: 0.95rem; }
-    .search-icon { left: 16px; }
+    .search-box input { padding: 16px 18px 16px 50px; font-size: 1.05rem; }
+    .search-icon { left: 18px; font-size: 1.3rem; }
+    .suggestion { padding: 14px 16px; }
+    .sug-name { font-size: 1rem; }
+    .sug-meta { font-size: 0.9rem; }
 
-    .swimmer-card { padding: 20px 16px; border-radius: 18px; }
-    .swimmer-info h2 { font-size: 1.5rem; }
-    .big-avatar { width: 64px; height: 64px; font-size: 1.4rem; }
-    .stats-grid { grid-template-columns: repeat(2, 1fr); gap: 10px; }
-    .stat { padding: 12px; }
-    .stat-value { font-size: 1.4rem; }
+    .swimmer-card { padding: 22px 18px; border-radius: 18px; }
+    .swimmer-info h2 { font-size: 1.7rem; }
+    .big-avatar { width: 70px; height: 70px; font-size: 1.6rem; }
+    .stats-grid { grid-template-columns: 1fr 1fr; gap: 12px; }
+    .stat { padding: 14px; }
+    .stat-label { font-size: 0.78rem; }
+    .stat-value { font-size: 1.7rem; }
+    .stat-sub { font-size: 0.85rem; }
 
     .actions-row { flex-direction: column; }
-    .actions-row .btn, .actions-row .star-btn { width: 100%; justify-content: center; }
+    .actions-row .btn, .actions-row .star-btn { width: 100%; justify-content: center; padding: 14px 18px; font-size: 1rem; }
 
-    .podium { grid-template-columns: 1fr; gap: 8px; }
-    .podium-place { padding: 14px 12px !important; }
+    .podium { grid-template-columns: 1fr; gap: 10px; }
+    .podium-place { padding: 18px !important; }
+    .podium-event { font-size: 1.2rem; }
+    .podium-time { font-size: 1.7rem; }
 
-    .tabs-row { gap: 6px; }
-    .tab { padding: 8px 14px; font-size: 0.85rem; }
+    .tabs-row { gap: 8px; }
+    .tab { padding: 12px 18px; font-size: 0.95rem; flex: 1; text-align: center; }
 
-    table { font-size: 0.82rem; }
-    thead th, tbody td { padding: 8px 10px; }
-    .stroke-pill { font-size: 0.75rem; padding: 3px 7px; }
+    /* Tableau mobile : on cache colonnes secondaires, on ne garde que l'essentiel */
+    table { font-size: 0.92rem; }
+    thead th, tbody td { padding: 10px 8px; }
+    thead th:nth-child(4), tbody td:nth-child(4),  /* Âge */
+    thead th:nth-child(5), tbody td:nth-child(5),  /* Lieu */
+    thead th:nth-child(7), tbody td:nth-child(7) { /* Niveau */
+      display: none;
+    }
+    .stroke-pill { font-size: 0.85rem; padding: 4px 9px; }
 
-    .charts-grid { grid-template-columns: 1fr !important; gap: 14px; }
-    .chart-card { padding: 16px; }
+    .charts-grid { grid-template-columns: 1fr !important; gap: 16px; }
+    .chart-card { padding: 18px 14px; }
+    .chart-card h3 { font-size: 1rem; }
 
     /* Hero mobile */
-    .hero-stats { grid-template-columns: 1fr 1fr 1fr; gap: 8px; }
-    .hero-stat { padding: 12px 8px; }
-    .hero-stat-num { font-size: 1.3rem; }
-    .hero-stat-lbl { font-size: 0.65rem; }
-    .stars-grid { grid-template-columns: 1fr 1fr; gap: 10px; }
-    .star-card { padding: 12px; gap: 10px; }
-    .star-card .avatar { width: 40px; height: 40px; font-size: 0.9rem; }
-    .star-name { font-size: 0.88rem; }
-    .star-meta { font-size: 0.7rem; }
-    .how-steps { grid-template-columns: 1fr; }
-    .hero-tips { grid-template-columns: 1fr 1fr; }
+    .hero-stats { grid-template-columns: 1fr; gap: 12px; }
+    .hero-stat { padding: 18px 20px; display: flex; align-items: center;
+      justify-content: space-between; text-align: left; gap: 12px; }
+    .hero-stat-num { font-size: 2rem; }
+    .hero-stat-lbl { font-size: 0.85rem; margin-top: 0; }
+
+    .hero-section-title { font-size: 1.15rem; }
+
+    .stars-grid { grid-template-columns: 1fr; gap: 10px; }
+    .star-card { padding: 14px; gap: 14px; }
+    .star-card .avatar { width: 48px; height: 48px; font-size: 1rem; }
+    .star-name { font-size: 1rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .star-meta { font-size: 0.85rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+    .how-steps { grid-template-columns: 1fr; gap: 12px; }
+    .how-step { padding: 18px 18px 18px 56px; }
+    .how-title { font-size: 1.05rem; }
+    .how-desc { font-size: 0.92rem; }
+
+    .hero-tips { grid-template-columns: 1fr; gap: 12px; }
+    .hero-tip { padding: 18px; }
+    .hero-tip-icon { font-size: 2rem; }
+    .hero-tip-title { font-size: 1.05rem; }
+    .hero-tip-desc { font-size: 0.92rem; }
 
     /* Side panel pleine largeur */
-    .side-panel { width: 100vw; max-width: 100vw; right: -100vw; }
+    .side-panel { width: 100vw; max-width: 100vw; right: -100vw; padding: 24px 16px 80px; }
     .side-toggle {
-      writing-mode: horizontal-tb; padding: 12px 16px;
-      bottom: 20px; right: 20px; top: auto; transform: none;
-      border-radius: 999px; font-size: 0.85rem;
-      box-shadow: 0 8px 24px rgba(56,225,255,0.4);
+      writing-mode: horizontal-tb; padding: 14px 22px;
+      bottom: 24px; right: 24px; top: auto; transform: none;
+      border-radius: 999px; font-size: 1rem; font-weight: 800;
+      box-shadow: 0 10px 28px rgba(56,225,255,0.4);
     }
 
-    .theme-toggle { top: 12px; right: 12px; width: 38px; height: 38px; font-size: 1rem; }
+    .theme-toggle { top: 14px; right: 14px; width: 44px; height: 44px; font-size: 1.2rem; }
+    .menu-toggle { top: 14px; left: 14px; width: 44px; height: 44px; }
 
-    .level-badge { font-size: 0.85rem; padding: 6px 12px; }
+    .level-badge { font-size: 1rem; padding: 8px 16px; }
+    .xp-wrap { max-width: 100%; }
+
     .ach-grid { grid-template-columns: 1fr; }
+    .ach { padding: 16px; }
+    .ach-title { font-size: 1rem; }
+    .ach-desc { font-size: 0.85rem; }
+
+    .compare-banner { padding: 14px 16px; font-size: 0.92rem; }
+    .compare-vs { font-size: 1.2rem; }
 
     /* Wave SVG plus petites */
     .wave-svg { height: 100px; }
+
+    /* Nav menu mobile : prend plus de place */
+    .nav-menu { width: 88vw; max-width: 360px; left: -90vw; padding: 20px 18px; }
+    .nav-item { padding: 14px 16px; font-size: 1.05rem; }
+  }
+
+  @media (max-width: 380px) {
+    .stats-grid { grid-template-columns: 1fr; }
+    .tabs-row { flex-direction: column; }
+    .tab { width: 100%; }
   }
 
   /* Désactiver custom cursor + tilt sur écrans tactiles */
