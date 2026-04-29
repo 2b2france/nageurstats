@@ -1,0 +1,1832 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<title>NageurStats — FFN Tracker</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.3/dist/confetti.browser.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&family=JetBrains+Mono:wght@600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg-1: #03142e;
+    --bg-2: #082858;
+    --aqua: #38e1ff;
+    --aqua-2: #00b8d4;
+    --gold: #ffd166;
+    --silver: #cbd5e1;
+    --bronze: #d97706;
+    --pink: #f472b6;
+    --blue: #60a5fa;
+    --purple: #a78bfa;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { overflow-x: hidden; }
+  body {
+    font-family: 'Inter', -apple-system, sans-serif;
+    background: var(--bg-1);
+    color: #e2e8f0; min-height: 100vh;
+    position: relative;
+  }
+
+  /* Animated wave background */
+  .waves {
+    position: fixed; inset: 0; z-index: 0; overflow: hidden;
+    background: radial-gradient(ellipse at top, var(--bg-2), var(--bg-1) 70%);
+  }
+  .waves::before, .waves::after {
+    content: ''; position: absolute; left: -50%; width: 200%; height: 200px;
+    background: radial-gradient(ellipse, rgba(56,225,255,0.15), transparent 70%);
+    border-radius: 50%;
+    animation: wave 14s ease-in-out infinite;
+  }
+  .waves::before { top: 20%; }
+  .waves::after { top: 60%; animation-delay: -7s; opacity: 0.6; }
+  @keyframes wave {
+    0%,100% { transform: translateX(0) scaleY(1); }
+    50% { transform: translateX(10%) scaleY(1.2); }
+  }
+
+  /* Vagues SVG */
+  .wave-svg {
+    position: fixed; left: 0; width: 100%; height: 180px;
+    z-index: 1; pointer-events: none;
+  }
+  .wave-top { top: 0; }
+  .wave-bottom { bottom: 0; transform: scaleY(-1); }
+  .w-path { animation: waveMove 12s ease-in-out infinite; transform-origin: center; }
+  .w-path.w2 { animation-duration: 18s; animation-delay: -4s; opacity: 0.7; }
+  @keyframes waveMove {
+    0%,100% { transform: translateX(0) scaleX(1); }
+    50%     { transform: translateX(-30px) scaleX(1.05); }
+  }
+
+  /* Spotlight (suit le curseur) */
+  .spotlight {
+    position: relative;
+  }
+  .spotlight::before {
+    content: ''; position: absolute; inset: 0;
+    background: radial-gradient(360px circle at var(--mx, 50%) var(--my, 50%),
+      rgba(56,225,255,0.15), transparent 60%);
+    pointer-events: none; opacity: 0;
+    transition: opacity 0.3s; border-radius: inherit;
+  }
+  .spotlight:hover::before { opacity: 1; }
+
+  /* 3D tilt swimmer card */
+  .tiltable {
+    transition: transform 0.4s cubic-bezier(.2,.7,.2,1);
+    transform-style: preserve-3d;
+    will-change: transform;
+  }
+
+  /* Élite legendary border + particules */
+  .elite-aura {
+    position: relative;
+  }
+  .elite-aura::after {
+    content: ''; position: absolute; inset: -2px;
+    border-radius: 26px;
+    padding: 2px;
+    background: conic-gradient(from 0deg, #ffd166, #f472b6, #38e1ff, #a78bfa, #ffd166);
+    -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+    -webkit-mask-composite: xor; mask-composite: exclude;
+    animation: rotateGrad 6s linear infinite;
+    pointer-events: none;
+  }
+  @keyframes rotateGrad {
+    to { transform: rotate(360deg); }
+  }
+  .gold-particle {
+    position: fixed; top: -10px; pointer-events: none; z-index: 5;
+    color: #ffd166; font-size: 14px;
+    animation: fall linear forwards;
+    text-shadow: 0 0 8px rgba(255,209,102,0.7);
+  }
+  @keyframes fall {
+    0% { transform: translateY(0) rotate(0); opacity: 0; }
+    10% { opacity: 1; }
+    100% { transform: translateY(110vh) rotate(540deg); opacity: 0; }
+  }
+
+  /* Bubbles */
+  .bubble {
+    position: fixed; bottom: -50px; background: rgba(56,225,255,0.12);
+    border-radius: 50%; pointer-events: none; z-index: 1;
+    animation: rise linear infinite;
+    border: 1px solid rgba(56,225,255,0.2);
+  }
+  @keyframes rise {
+    0% { transform: translateY(0) translateX(0); opacity: 0; }
+    10% { opacity: 1; }
+    90% { opacity: 1; }
+    100% { transform: translateY(-110vh) translateX(40px); opacity: 0; }
+  }
+
+  .container { position: relative; z-index: 2; max-width: 1200px; margin: 0 auto; padding: 32px 24px 80px; }
+
+  header { text-align: center; margin-bottom: 40px; }
+  .logo {
+    display: inline-flex; align-items: center; gap: 12px;
+    font-size: 2.8rem; font-weight: 900; letter-spacing: -0.02em;
+    background: linear-gradient(120deg, #fff 0%, var(--aqua) 50%, var(--aqua-2) 100%);
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  }
+  .logo-icon { font-size: 2.4rem; filter: drop-shadow(0 0 12px var(--aqua)); }
+  .tagline { color: #94a3b8; margin-top: 8px; font-size: 1rem; }
+
+  /* Search */
+  .search-wrap { position: relative; max-width: 720px; margin: 0 auto 32px; }
+  .search-box {
+    position: relative;
+    background: rgba(8,40,88,0.6);
+    backdrop-filter: blur(16px);
+    border: 1px solid rgba(56,225,255,0.25);
+    border-radius: 18px;
+    transition: all 0.3s;
+  }
+  .search-box:focus-within {
+    border-color: var(--aqua);
+    box-shadow: 0 0 0 4px rgba(56,225,255,0.15), 0 8px 32px rgba(56,225,255,0.2);
+  }
+  .search-box input {
+    width: 100%; padding: 18px 22px 18px 56px; font-size: 1.05rem;
+    background: transparent; border: none; outline: none;
+    color: #fff; font-family: inherit;
+  }
+  .search-box input::placeholder { color: #64748b; }
+  .search-icon {
+    position: absolute; left: 20px; top: 50%; transform: translateY(-50%);
+    color: var(--aqua); font-size: 1.2rem;
+  }
+  .suggestions {
+    position: absolute; top: calc(100% + 6px); left: 0; right: 0;
+    background: rgba(8,30,68,0.95);
+    backdrop-filter: blur(20px);
+    border: 1px solid rgba(56,225,255,0.2);
+    border-radius: 14px;
+    max-height: 380px; overflow-y: auto;
+    z-index: 100; display: none;
+    box-shadow: 0 16px 48px rgba(0,0,0,0.5);
+  }
+  .suggestions.active { display: block; animation: slideDown 0.2s ease-out; }
+  @keyframes slideDown { from { opacity:0; transform: translateY(-8px); } to { opacity:1; transform: translateY(0); } }
+  .suggestion {
+    display: flex; align-items: center; gap: 14px;
+    padding: 12px 18px; cursor: pointer;
+    border-bottom: 1px solid rgba(255,255,255,0.04);
+    transition: background 0.15s;
+  }
+  .suggestion:hover { background: rgba(56,225,255,0.08); }
+  .suggestion:last-child { border-bottom: none; }
+  .avatar {
+    width: 40px; height: 40px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 700; flex-shrink: 0; font-size: 1rem;
+  }
+  .avatar.h { background: linear-gradient(135deg, #1e40af, #3b82f6); color: #fff; }
+  .avatar.f { background: linear-gradient(135deg, #be185d, #ec4899); color: #fff; }
+  .sug-info { flex: 1; min-width: 0; }
+  .sug-name { font-weight: 700; color: #fff; }
+  .sug-meta { font-size: 0.85rem; color: #94a3b8; margin-top: 2px;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+  /* Loading */
+  .loading {
+    text-align: center; padding: 60px 20px;
+    animation: fadeIn 0.3s;
+  }
+  @keyframes fadeIn { from { opacity:0; } to { opacity:1; } }
+  .swim-loader {
+    display: inline-block; font-size: 3rem;
+    animation: swim 1.2s ease-in-out infinite;
+  }
+  @keyframes swim {
+    0%,100% { transform: translateX(-30px) rotate(-5deg); }
+    50% { transform: translateX(30px) rotate(5deg); }
+  }
+
+  /* Swimmer card */
+  .swimmer-card {
+    background: linear-gradient(135deg, rgba(8,40,88,0.7), rgba(8,30,68,0.7));
+    backdrop-filter: blur(16px);
+    border: 1px solid rgba(56,225,255,0.2);
+    border-radius: 24px; padding: 32px;
+    margin-bottom: 28px;
+    animation: cardIn 0.5s cubic-bezier(.2,.7,.2,1);
+    position: relative; overflow: hidden;
+  }
+  .swimmer-card::before {
+    content: ''; position: absolute; top: -50%; right: -10%;
+    width: 400px; height: 400px;
+    background: radial-gradient(circle, rgba(56,225,255,0.15), transparent 60%);
+    pointer-events: none;
+  }
+  @keyframes cardIn { from { opacity:0; transform: translateY(20px); } to { opacity:1; transform:translateY(0); } }
+  .swimmer-top { display: flex; gap: 24px; align-items: center; flex-wrap: wrap; position: relative; z-index: 1; }
+  .big-avatar {
+    width: 88px; height: 88px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 2rem; font-weight: 900; color: #fff;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+    flex-shrink: 0;
+  }
+  .big-avatar.h { background: linear-gradient(135deg, #1e3a8a, #3b82f6); }
+  .big-avatar.f { background: linear-gradient(135deg, #831843, #ec4899); }
+  .swimmer-info h2 {
+    font-size: 2.2rem; font-weight: 800; line-height: 1.1;
+    background: linear-gradient(120deg, #fff, var(--aqua));
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  }
+  .swimmer-tags { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; }
+  .tag {
+    padding: 4px 12px; background: rgba(56,225,255,0.12);
+    border: 1px solid rgba(56,225,255,0.3);
+    border-radius: 999px; font-size: 0.85rem; color: var(--aqua); font-weight: 600;
+  }
+  .tag.club { background: rgba(255,255,255,0.05); border-color: rgba(255,255,255,0.1); color: #cbd5e1; }
+
+  /* Stats grid */
+  .stats-grid {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 14px; margin-top: 24px; position: relative; z-index: 1;
+  }
+  .stat {
+    background: rgba(0,0,0,0.25);
+    border: 1px solid rgba(255,255,255,0.06);
+    border-radius: 14px; padding: 16px;
+    transition: all 0.2s;
+  }
+  .stat:hover { transform: translateY(-3px); border-color: rgba(56,225,255,0.4); }
+  .stat-label { font-size: 0.75rem; color: #94a3b8; text-transform: uppercase;
+    letter-spacing: 0.08em; font-weight: 600; }
+  .stat-value { font-size: 1.9rem; font-weight: 800; margin-top: 6px;
+    color: var(--aqua); font-family: 'JetBrains Mono', monospace; }
+  .stat-sub { font-size: 0.8rem; color: #94a3b8; margin-top: 2px; }
+
+  /* Podium for top 3 perfs */
+  .podium-section { margin-bottom: 28px; }
+  .section-title {
+    font-size: 1.3rem; font-weight: 800; margin-bottom: 16px;
+    display: flex; align-items: center; gap: 10px;
+  }
+  .podium {
+    display: grid; grid-template-columns: 1fr 1.2fr 1fr;
+    gap: 12px; align-items: end;
+  }
+  .podium-place {
+    background: linear-gradient(180deg, rgba(8,40,88,0.6), rgba(8,30,68,0.6));
+    backdrop-filter: blur(10px);
+    border-radius: 16px; padding: 18px 14px; text-align: center;
+    border: 1px solid rgba(255,255,255,0.08);
+    transition: all 0.25s;
+    animation: podiumIn 0.6s cubic-bezier(.2,.7,.2,1) both;
+  }
+  .podium-place:hover { transform: translateY(-6px); }
+  .podium-place.gold { border-color: var(--gold); box-shadow: 0 0 32px rgba(255,209,102,0.2); animation-delay: 0.1s; }
+  .podium-place.silver { border-color: var(--silver); animation-delay: 0s; }
+  .podium-place.bronze { border-color: var(--bronze); animation-delay: 0.2s; }
+  @keyframes podiumIn { from { opacity:0; transform: translateY(20px); } to { opacity:1; transform:translateY(0); } }
+  .medal { font-size: 2rem; margin-bottom: 4px; }
+  .podium-event { font-weight: 800; font-size: 1.1rem; }
+  .podium-time { font-family: 'JetBrains Mono', monospace; font-size: 1.5rem;
+    color: var(--aqua); font-weight: 700; margin: 6px 0; }
+  .podium-pts { color: var(--purple); font-weight: 700; font-size: 0.9rem; }
+  .podium-date { color: #94a3b8; font-size: 0.78rem; margin-top: 4px; }
+
+  /* Tabs */
+  .tabs-row { display: flex; gap: 8px; margin-bottom: 18px; flex-wrap: wrap; }
+  .tab {
+    padding: 10px 22px; background: rgba(8,40,88,0.4);
+    border: 1px solid rgba(255,255,255,0.08); border-radius: 12px;
+    cursor: pointer; font-weight: 700; color: #94a3b8;
+    font-family: inherit; font-size: 0.95rem;
+    transition: all 0.2s;
+  }
+  .tab:hover { color: #fff; border-color: rgba(56,225,255,0.3); }
+  .tab.active {
+    background: linear-gradient(135deg, var(--aqua), var(--aqua-2));
+    color: #03142e; border-color: var(--aqua);
+    box-shadow: 0 6px 20px rgba(56,225,255,0.3);
+  }
+  .tab-count {
+    display: inline-block; margin-left: 6px;
+    padding: 1px 8px; background: rgba(0,0,0,0.2);
+    border-radius: 999px; font-size: 0.78rem;
+  }
+
+  /* Perfs table */
+  .table-wrap {
+    background: rgba(8,30,68,0.5); backdrop-filter: blur(10px);
+    border: 1px solid rgba(255,255,255,0.06);
+    border-radius: 16px; overflow: hidden;
+    animation: fadeIn 0.4s;
+  }
+  table { width: 100%; border-collapse: collapse; }
+  thead th {
+    background: rgba(56,225,255,0.08);
+    padding: 14px 16px; text-align: left;
+    font-size: 0.75rem; text-transform: uppercase;
+    letter-spacing: 0.08em; color: var(--aqua); font-weight: 700;
+  }
+  tbody td {
+    padding: 12px 16px; border-bottom: 1px solid rgba(255,255,255,0.04);
+    font-size: 0.92rem;
+  }
+  tbody tr { transition: background 0.15s; }
+  tbody tr:hover { background: rgba(56,225,255,0.05); }
+  tbody tr:last-child td { border-bottom: none; }
+  .stroke-pill {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 4px 10px; border-radius: 8px; font-weight: 700;
+    font-size: 0.85rem;
+  }
+  .stroke-NL  { background: rgba(56,189,248,0.15); color: #38bdf8; border: 1px solid rgba(56,189,248,0.3); }
+  .stroke-Bra { background: rgba(167,139,250,0.15); color: #a78bfa; border: 1px solid rgba(167,139,250,0.3); }
+  .stroke-Dos { background: rgba(244,114,182,0.15); color: #f472b6; border: 1px solid rgba(244,114,182,0.3); }
+  .stroke-Pap { background: rgba(255,209,102,0.15); color: var(--gold); border: 1px solid rgba(255,209,102,0.3); }
+  .stroke-4N  { background: rgba(74,222,128,0.15); color: #4ade80; border: 1px solid rgba(74,222,128,0.3); }
+  .time { font-family: 'JetBrains Mono', monospace; font-weight: 700; color: var(--aqua); }
+  .pts { color: var(--purple); font-weight: 700; }
+  .lvl-DEP { color: #94a3b8; }
+  .lvl-REG { color: #60a5fa; }
+  .lvl-NAT, .lvl-N1, .lvl-N2 { color: var(--gold); font-weight: 700; }
+  .lvl-INT { color: #f472b6; font-weight: 700; }
+
+  /* Charts */
+  .chart-card {
+    background: rgba(8,30,68,0.5); backdrop-filter: blur(10px);
+    border: 1px solid rgba(255,255,255,0.06);
+    border-radius: 16px; padding: 24px;
+    margin-top: 24px;
+    animation: fadeIn 0.5s;
+  }
+  .chart-card h3 { margin-bottom: 16px; font-size: 1.1rem; font-weight: 700; }
+
+  .charts-grid {
+    display: grid; grid-template-columns: 1fr; gap: 20px;
+  }
+  @media (min-width: 900px) {
+    .charts-grid { grid-template-columns: 1fr 1fr; }
+  }
+
+  .empty { text-align: center; padding: 50px 20px; color: #64748b; }
+
+  /* Level badge */
+  .level-badge {
+    display: inline-flex; align-items: center; gap: 8px;
+    padding: 8px 16px; border-radius: 999px;
+    font-weight: 800; font-size: 0.95rem;
+    margin-top: 12px;
+    animation: levelGlow 2.5s ease-in-out infinite;
+    position: relative;
+  }
+  @keyframes levelGlow {
+    0%,100% { box-shadow: 0 0 12px currentColor; }
+    50% { box-shadow: 0 0 28px currentColor, 0 0 8px currentColor; }
+  }
+  .level-bronze  { background: linear-gradient(135deg, #92400e, #d97706); color: #fed7aa; }
+  .level-silver  { background: linear-gradient(135deg, #475569, #94a3b8); color: #f1f5f9; }
+  .level-gold    { background: linear-gradient(135deg, #b45309, #fbbf24); color: #fef3c7; }
+  .level-diamond { background: linear-gradient(135deg, #0e7490, #06b6d4); color: #cffafe; }
+  .level-elite   { background: linear-gradient(135deg, #6d28d9, #ec4899); color: #fce7f3; }
+
+  /* Podium gold extra glow */
+  .podium-place.gold {
+    animation: podiumIn 0.6s cubic-bezier(.2,.7,.2,1) both, goldPulse 2.4s ease-in-out infinite 0.8s;
+  }
+  @keyframes goldPulse {
+    0%,100% { box-shadow: 0 0 32px rgba(255,209,102,0.25); }
+    50% { box-shadow: 0 0 48px rgba(255,209,102,0.55), 0 0 12px rgba(255,209,102,0.3); }
+  }
+
+  /* Action buttons (compare / share) */
+  .actions-row {
+    display: flex; gap: 10px; flex-wrap: wrap;
+    margin-top: 16px; position: relative; z-index: 1;
+  }
+  .btn {
+    padding: 10px 18px; border-radius: 12px;
+    font-weight: 700; font-family: inherit; font-size: 0.92rem;
+    cursor: pointer; border: 1px solid rgba(255,255,255,0.15);
+    background: rgba(255,255,255,0.05); color: #e2e8f0;
+    display: inline-flex; align-items: center; gap: 8px;
+    transition: all 0.2s;
+  }
+  .btn:hover { background: rgba(56,225,255,0.15); border-color: var(--aqua); transform: translateY(-2px); }
+  .btn-primary { background: linear-gradient(135deg, var(--aqua), var(--aqua-2)); color: #03142e; border-color: var(--aqua); }
+  .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(56,225,255,0.35); }
+
+  /* Splits tooltip */
+  .time-wrap { position: relative; display: inline-block; cursor: help; }
+  .splits-tip {
+    position: absolute; bottom: 100%; left: 50%; transform: translateX(-50%) translateY(-8px);
+    background: rgba(3,20,46,0.98); backdrop-filter: blur(14px);
+    border: 1px solid rgba(56,225,255,0.4);
+    border-radius: 10px; padding: 10px 14px;
+    font-family: 'JetBrains Mono', monospace; font-size: 0.82rem;
+    white-space: nowrap; pointer-events: none; z-index: 50;
+    opacity: 0; transition: opacity 0.2s;
+    box-shadow: 0 12px 32px rgba(0,0,0,0.5);
+  }
+  .time-wrap:hover .splits-tip { opacity: 1; }
+  .splits-tip table { border-collapse: collapse; }
+  .splits-tip td { padding: 2px 8px; border: none; font-size: 0.82rem; }
+  .splits-tip .lbl { color: #38e1ff; }
+  .splits-tip .cum { color: #fff; font-weight: 700; }
+  .splits-tip .lap { color: #f472b6; }
+
+  /* Skeleton loader */
+  .skeleton {
+    background: linear-gradient(90deg, rgba(56,225,255,0.05), rgba(56,225,255,0.15), rgba(56,225,255,0.05));
+    background-size: 200% 100%;
+    animation: shimmer 1.4s infinite linear;
+    border-radius: 12px;
+  }
+  @keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+  .sk-card { padding: 24px; border-radius: 20px; border: 1px solid rgba(255,255,255,0.06); }
+  .sk-line { height: 18px; margin-bottom: 12px; }
+  .sk-line.lg { height: 36px; width: 60%; }
+  .sk-line.md { height: 22px; width: 80%; }
+  .sk-line.sm { height: 14px; width: 40%; }
+  .sk-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-top: 20px; }
+  .sk-stat { height: 90px; }
+
+  /* Compare panel */
+  .compare-banner {
+    background: linear-gradient(135deg, rgba(167,139,250,0.15), rgba(56,225,255,0.1));
+    border: 1px solid rgba(167,139,250,0.4);
+    border-radius: 16px; padding: 18px 22px;
+    display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+    margin-bottom: 20px;
+    animation: cardIn 0.4s;
+  }
+  .compare-banner strong { color: #a78bfa; }
+  .compare-vs {
+    font-size: 1.5rem; font-weight: 900;
+    background: linear-gradient(135deg, var(--aqua), var(--pink));
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  }
+
+  /* Theme light overrides */
+  body.light {
+    background: #e7f4fb;
+    color: #0f172a;
+  }
+  body.light .waves { background: radial-gradient(ellipse at top, #c5e6f5, #e7f4fb 70%); }
+  body.light .swimmer-card,
+  body.light .table-wrap,
+  body.light .chart-card,
+  body.light .podium-place {
+    background: rgba(255,255,255,0.65);
+    border-color: rgba(56,189,248,0.3);
+    color: #0f172a;
+  }
+  body.light .search-box { background: rgba(255,255,255,0.85); border-color: rgba(56,189,248,0.4); }
+  body.light .search-box input { color: #0f172a; }
+  body.light .search-box input::placeholder { color: #64748b; }
+  body.light .suggestions { background: rgba(255,255,255,0.97); }
+  body.light .sug-name, body.light .swimmer-info h2 { color: #0f172a; -webkit-text-fill-color: #0f172a; background: none; }
+  body.light .stat { background: rgba(255,255,255,0.5); }
+  body.light .tag.club { background: rgba(0,0,0,0.05); color: #475569; }
+  body.light tbody tr:hover { background: rgba(56,189,248,0.08); }
+  body.light .tab { background: rgba(255,255,255,0.5); color: #475569; }
+  body.light thead th { background: rgba(56,189,248,0.15); }
+  body.light .stat-label, body.light .stat-sub { color: #64748b; }
+  body.light .heatmap-cell { background: rgba(0,0,0,0.05); }
+
+  /* Theme toggle */
+  .theme-toggle {
+    position: fixed; top: 24px; right: 24px; z-index: 50;
+    width: 46px; height: 46px; border-radius: 50%;
+    background: rgba(8,40,88,0.7); backdrop-filter: blur(14px);
+    border: 1px solid rgba(56,225,255,0.3);
+    cursor: pointer; display: flex; align-items: center; justify-content: center;
+    font-size: 1.2rem; transition: all 0.3s;
+  }
+  .theme-toggle:hover { transform: rotate(20deg) scale(1.1); border-color: var(--aqua); }
+  body.light .theme-toggle { background: rgba(255,255,255,0.85); border-color: rgba(56,189,248,0.5); }
+
+  /* Custom cursor (water drop) */
+  .cursor-dot {
+    position: fixed; pointer-events: none; z-index: 9999;
+    width: 8px; height: 8px; border-radius: 50%;
+    background: var(--aqua); top: 0; left: 0;
+    box-shadow: 0 0 12px var(--aqua), 0 0 24px var(--aqua);
+    transition: transform 0.1s ease-out, opacity 0.2s;
+    transform: translate(-50%, -50%);
+    mix-blend-mode: screen;
+  }
+  .cursor-ring {
+    position: fixed; pointer-events: none; z-index: 9998;
+    width: 32px; height: 32px; border-radius: 50%;
+    border: 1.5px solid var(--aqua); top: 0; left: 0;
+    transition: transform 0.18s ease-out, width 0.2s, height 0.2s, opacity 0.2s;
+    transform: translate(-50%, -50%);
+    opacity: 0.6;
+  }
+  .cursor-ring.hover {
+    width: 56px; height: 56px; opacity: 1;
+    border-color: var(--pink);
+  }
+
+  /* Empty state hero */
+  .hero {
+    text-align: center; padding: 30px 20px 60px;
+    animation: fadeIn 0.6s;
+  }
+  .hero-fav-title {
+    font-size: 0.85rem; color: #94a3b8; text-transform: uppercase;
+    letter-spacing: 0.1em; margin-bottom: 14px;
+  }
+  .hero-favs {
+    display: flex; flex-wrap: wrap; justify-content: center; gap: 10px;
+    max-width: 800px; margin: 0 auto 32px;
+  }
+  .fav-pill {
+    display: inline-flex; align-items: center; gap: 8px;
+    padding: 8px 16px; border-radius: 999px;
+    background: rgba(8,40,88,0.55); backdrop-filter: blur(8px);
+    border: 1px solid rgba(56,225,255,0.25);
+    cursor: pointer; transition: all 0.2s;
+    font-size: 0.92rem; font-weight: 600;
+  }
+  .fav-pill:hover { transform: translateY(-3px); border-color: var(--aqua); box-shadow: 0 6px 18px rgba(56,225,255,0.25); }
+  .fav-pill .fav-x { opacity: 0.5; margin-left: 4px; }
+  .fav-pill .fav-x:hover { opacity: 1; color: var(--pink); }
+  .hero-tips {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(200px,1fr));
+    gap: 14px; max-width: 800px; margin: 32px auto 0;
+  }
+  .hero-tip {
+    background: rgba(8,40,88,0.4); border: 1px solid rgba(255,255,255,0.06);
+    border-radius: 14px; padding: 18px;
+  }
+  .hero-tip-icon { font-size: 1.6rem; margin-bottom: 8px; }
+  .hero-tip-title { font-weight: 700; margin-bottom: 4px; }
+  .hero-tip-desc { font-size: 0.85rem; color: #94a3b8; }
+
+  /* Star button (favori) */
+  .star-btn {
+    background: transparent; border: 1px solid rgba(255,255,255,0.15);
+    color: #94a3b8; cursor: pointer; padding: 8px 12px; border-radius: 10px;
+    font-size: 1.1rem; transition: all 0.2s;
+  }
+  .star-btn:hover { color: var(--gold); border-color: var(--gold); transform: scale(1.1); }
+  .star-btn.active { color: var(--gold); border-color: var(--gold); background: rgba(255,209,102,0.1); }
+
+  /* Achievements */
+  .achievements { margin-bottom: 24px; }
+  .ach-grid {
+    display: grid; grid-template-columns: repeat(auto-fill, minmax(170px,1fr)); gap: 12px;
+  }
+  .ach {
+    background: rgba(8,30,68,0.5); backdrop-filter: blur(10px);
+    border: 1px solid rgba(255,255,255,0.06);
+    border-radius: 14px; padding: 14px;
+    display: flex; gap: 10px; align-items: center;
+    transition: all 0.25s;
+    animation: cardIn 0.5s both;
+  }
+  .ach.unlocked { border-color: rgba(255,209,102,0.5); background: linear-gradient(135deg, rgba(255,209,102,0.08), rgba(8,30,68,0.5)); }
+  .ach.locked { opacity: 0.4; filter: grayscale(0.7); }
+  .ach:hover { transform: translateY(-3px); }
+  .ach-icon { font-size: 1.8rem; flex-shrink: 0; }
+  .ach-info { flex: 1; min-width: 0; }
+  .ach-title { font-weight: 800; font-size: 0.9rem; }
+  .ach-desc { font-size: 0.75rem; color: #94a3b8; margin-top: 2px; }
+
+  /* XP bar */
+  .xp-wrap { margin-top: 12px; max-width: 320px; }
+  .xp-label { display: flex; justify-content: space-between; font-size: 0.78rem;
+    color: #94a3b8; margin-bottom: 6px; font-weight: 600; }
+  .xp-bar {
+    height: 10px; background: rgba(0,0,0,0.3); border-radius: 999px; overflow: hidden;
+    border: 1px solid rgba(255,255,255,0.08);
+  }
+  .xp-fill {
+    height: 100%; border-radius: 999px;
+    background: linear-gradient(90deg, var(--aqua), var(--pink));
+    box-shadow: 0 0 16px var(--aqua);
+    transition: width 1.5s cubic-bezier(.2,.7,.2,1);
+    width: 0;
+  }
+
+  /* Heatmap */
+  .heatmap {
+    display: grid; grid-template-columns: 60px repeat(12, 1fr); gap: 4px;
+    margin-top: 8px;
+  }
+  .heatmap-row-label { font-size: 0.78rem; color: #94a3b8; align-self: center; font-weight: 600; }
+  .heatmap-cell {
+    aspect-ratio: 1; border-radius: 4px; background: rgba(255,255,255,0.04);
+    transition: transform 0.15s; position: relative;
+  }
+  .heatmap-cell:hover { transform: scale(1.3); z-index: 5; }
+  .heatmap-cell[data-c="1"] { background: rgba(56,225,255,0.2); }
+  .heatmap-cell[data-c="2"] { background: rgba(56,225,255,0.4); }
+  .heatmap-cell[data-c="3"] { background: rgba(56,225,255,0.65); }
+  .heatmap-cell[data-c="4"] { background: rgba(56,225,255,0.9); box-shadow: 0 0 8px rgba(56,225,255,0.6); }
+  .heatmap-month-row {
+    display: grid; grid-template-columns: 60px repeat(12, 1fr); gap: 4px;
+    font-size: 0.7rem; color: #64748b; margin-bottom: 4px;
+  }
+
+  /* Sparkline cell */
+  .sparkline { width: 90px; height: 22px; vertical-align: middle; margin-left: 8px; }
+  .sparkline polyline { fill: none; stroke: #38e1ff; stroke-width: 1.6; }
+  .sparkline circle { fill: #f472b6; }
+
+  /* Streak badge */
+  .streak {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 4px 12px; background: linear-gradient(135deg, #ea580c, #f97316);
+    border-radius: 999px; font-weight: 800; font-size: 0.82rem; color: #fff;
+    margin-left: 8px;
+  }
+
+  /* Konami rainbow */
+  body.rainbow {
+    animation: rainbowBg 4s linear infinite;
+  }
+  @keyframes rainbowBg {
+    0% { filter: hue-rotate(0deg); }
+    100% { filter: hue-rotate(360deg); }
+  }
+
+  /* Side panel coulissant */
+  .side-panel {
+    position: fixed; top: 0; right: -440px; width: 420px; max-width: 92vw;
+    height: 100vh; z-index: 200;
+    background: linear-gradient(180deg, rgba(8,30,68,0.97), rgba(3,20,46,0.97));
+    backdrop-filter: blur(20px);
+    border-left: 1px solid rgba(56,225,255,0.25);
+    box-shadow: -16px 0 48px rgba(0,0,0,0.5);
+    transition: right 0.4s cubic-bezier(.2,.7,.2,1);
+    overflow-y: auto;
+    padding: 28px 24px 80px;
+  }
+  .side-panel.open { right: 0; }
+  body.light .side-panel { background: linear-gradient(180deg, rgba(255,255,255,0.97), rgba(231,244,251,0.97)); }
+  .side-panel-header {
+    display: flex; justify-content: space-between; align-items: center;
+    margin-bottom: 20px; padding-bottom: 16px;
+    border-bottom: 1px solid rgba(56,225,255,0.15);
+    position: sticky; top: 0;
+    background: linear-gradient(180deg, rgba(8,30,68,0.97), rgba(8,30,68,0.85));
+    margin: -28px -24px 20px; padding: 28px 24px 16px;
+    backdrop-filter: blur(10px);
+    z-index: 1;
+  }
+  body.light .side-panel-header { background: linear-gradient(180deg, rgba(255,255,255,0.97), rgba(255,255,255,0.85)); }
+  .panel-close {
+    background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1);
+    color: inherit; cursor: pointer; padding: 8px 14px; border-radius: 10px;
+    font-weight: 700; font-family: inherit;
+  }
+  .panel-close:hover { background: rgba(244,114,182,0.15); border-color: var(--pink); }
+  .panel-section { margin-bottom: 28px; }
+  .panel-section h4 {
+    font-size: 0.95rem; font-weight: 800; margin-bottom: 12px;
+    text-transform: uppercase; letter-spacing: 0.06em; color: var(--aqua);
+  }
+  .panel-section .ach-grid { grid-template-columns: 1fr 1fr; }
+  .panel-overlay {
+    position: fixed; inset: 0; background: rgba(0,0,0,0.5);
+    backdrop-filter: blur(2px); z-index: 199;
+    opacity: 0; pointer-events: none; transition: opacity 0.3s;
+  }
+  .panel-overlay.open { opacity: 1; pointer-events: auto; }
+
+  .side-toggle {
+    position: fixed; top: 50%; right: 0;
+    transform: translateY(-50%);
+    background: linear-gradient(135deg, var(--aqua), var(--aqua-2));
+    color: #03142e; border: none; cursor: pointer;
+    padding: 16px 8px; border-radius: 14px 0 0 14px;
+    font-weight: 800; font-size: 0.85rem;
+    writing-mode: vertical-rl; text-orientation: mixed;
+    box-shadow: -4px 4px 16px rgba(56,225,255,0.3);
+    z-index: 80;
+    transition: all 0.25s;
+    display: none;
+  }
+  .side-toggle.visible { display: block; }
+  .side-toggle:hover { padding-right: 16px; box-shadow: -8px 4px 24px rgba(56,225,255,0.5); }
+
+  .panel-mini-stat {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 10px 12px; border-radius: 10px;
+    background: rgba(255,255,255,0.04); margin-bottom: 6px;
+    font-size: 0.9rem;
+  }
+  .panel-mini-stat .lbl { color: #94a3b8; }
+  .panel-mini-stat .val { font-weight: 700; color: var(--aqua); font-family: 'JetBrains Mono', monospace; }
+
+  /* Smooth scroll */
+  html { scroll-behavior: smooth; }
+
+  ::-webkit-scrollbar { width: 10px; height: 10px; }
+  ::-webkit-scrollbar-track { background: rgba(255,255,255,0.02); }
+  ::-webkit-scrollbar-thumb { background: rgba(56,225,255,0.2); border-radius: 5px; }
+  ::-webkit-scrollbar-thumb:hover { background: rgba(56,225,255,0.4); }
+</style>
+</head>
+<body>
+<div class="waves"></div>
+<div class="cursor-dot" id="cursor-dot"></div>
+<div class="cursor-ring" id="cursor-ring"></div>
+<button class="theme-toggle" id="theme-toggle" title="Changer de thème (T)">🌙</button>
+<button class="side-toggle" id="side-toggle">🏅 Détails &amp; Succès</button>
+<div class="panel-overlay" id="panel-overlay"></div>
+<aside class="side-panel" id="side-panel">
+  <div class="side-panel-header">
+    <div style="font-weight:800;font-size:1.1rem">📋 Détails du nageur</div>
+    <button class="panel-close" id="panel-close">✕ Fermer</button>
+  </div>
+  <div id="panel-content"></div>
+</aside>
+
+<!-- Vagues SVG animées en haut -->
+<svg class="wave-svg wave-top" viewBox="0 0 1440 200" preserveAspectRatio="none">
+  <defs>
+    <linearGradient id="wgrad1" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#38e1ff" stop-opacity="0.25"/>
+      <stop offset="1" stop-color="#a78bfa" stop-opacity="0.15"/>
+    </linearGradient>
+  </defs>
+  <path class="w-path w1" d="M0,80 C240,140 480,20 720,80 C960,140 1200,20 1440,80 L1440,0 L0,0 Z" fill="url(#wgrad1)"/>
+  <path class="w-path w2" d="M0,100 C300,40 600,160 900,100 C1140,60 1320,140 1440,100 L1440,0 L0,0 Z" fill="rgba(56,225,255,0.08)"/>
+</svg>
+
+<!-- Vagues SVG animées en bas -->
+<svg class="wave-svg wave-bottom" viewBox="0 0 1440 200" preserveAspectRatio="none">
+  <path class="w-path w1" d="M0,120 C240,60 480,180 720,120 C960,60 1200,180 1440,120 L1440,200 L0,200 Z" fill="url(#wgrad1)"/>
+  <path class="w-path w2" d="M0,140 C300,200 600,80 900,140 C1140,180 1320,100 1440,140 L1440,200 L0,200 Z" fill="rgba(56,225,255,0.08)"/>
+</svg>
+
+<div class="container">
+  <header>
+    <div class="logo">
+      <span class="logo-icon">🏊</span>
+      <span>NageurStats</span>
+    </div>
+    <p class="tagline">Tape un nom · Vois toute la carrière FFN</p>
+  </header>
+
+  <div class="search-wrap">
+    <div class="search-box">
+      <span class="search-icon">🔍</span>
+      <input type="text" id="search" placeholder="Léon Marchand, Marchand Léon, ou juste Marchand..." autocomplete="off">
+    </div>
+    <div class="suggestions" id="suggestions"></div>
+  </div>
+
+  <div id="result"></div>
+</div>
+
+<script>
+// Bubbles background
+for (let i = 0; i < 18; i++) {
+  const b = document.createElement('div');
+  b.className = 'bubble';
+  const size = 8 + Math.random() * 28;
+  b.style.width = size + 'px';
+  b.style.height = size + 'px';
+  b.style.left = Math.random() * 100 + 'vw';
+  b.style.animationDuration = (8 + Math.random() * 12) + 's';
+  b.style.animationDelay = (Math.random() * 10) + 's';
+  document.body.appendChild(b);
+}
+
+const $ = sel => document.querySelector(sel);
+const search = $('#search'), suggestions = $('#suggestions'), result = $('#result');
+let searchTimer = null;
+const charts = {};
+
+function strokeKey(event) {
+  if (event.includes('4 N')) return '4N';
+  if (event.includes('NL')) return 'NL';
+  if (event.includes('Bra')) return 'Bra';
+  if (event.includes('Dos')) return 'Dos';
+  if (event.includes('Pap')) return 'Pap';
+  return 'NL';
+}
+const STROKE_LABEL = { NL: 'NL', Bra: 'Brasse', Dos: 'Dos', Pap: 'Papillon', '4N': '4 Nages' };
+
+function initials(name) {
+  return name.split(/\s+/).filter(Boolean).slice(0, 2).map(w => w[0]).join('').toUpperCase();
+}
+
+search.addEventListener('input', e => {
+  clearTimeout(searchTimer);
+  const q = e.target.value.trim();
+  if (q.length < 3) { suggestions.classList.remove('active'); return; }
+  searchTimer = setTimeout(() => doSearch(q), 350);
+});
+
+async function doSearch(q) {
+  try {
+    const r = await fetch('/api/search?q=' + encodeURIComponent(q));
+    const data = await r.json();
+    if (!Array.isArray(data) || data.length === 0) {
+      suggestions.innerHTML = '<div class="suggestion"><div class="sug-info"><div class="sug-meta">Aucun nageur trouvé pour "' + q + '"</div></div></div>';
+      suggestions.classList.add('active');
+      return;
+    }
+    suggestions.innerHTML = data.map(s => `
+      <div class="suggestion" data-iuf="${s.iuf}" data-name="${s.name}" data-sex="${s.sex}" data-year="${s.year}" data-club="${s.club}">
+        <div class="avatar ${s.sex === 'F' ? 'f' : 'h'}">${initials(s.name)}</div>
+        <div class="sug-info">
+          <div class="sug-name">${s.name}</div>
+          <div class="sug-meta">${s.year ? '('+s.year+')' : ''} · ${s.club || '—'}</div>
+        </div>
+      </div>`).join('');
+    suggestions.classList.add('active');
+    suggestions.querySelectorAll('.suggestion').forEach(el => {
+      el.addEventListener('click', () => {
+        const d = el.dataset;
+        loadSwimmer(d.iuf, { iuf: d.iuf, name: d.name, sex: d.sex, year: d.year, club: d.club });
+        suggestions.classList.remove('active');
+        search.value = d.name;
+      });
+    });
+  } catch (err) {
+    suggestions.innerHTML = '<div class="suggestion"><div class="sug-info"><div class="sug-meta">Erreur : ' + err.message + '</div></div></div>';
+    suggestions.classList.add('active');
+  }
+}
+
+document.addEventListener('click', e => {
+  if (!e.target.closest('.search-wrap')) suggestions.classList.remove('active');
+});
+
+// === Persistence localStorage ===
+const STORAGE_FAV = 'nageurstats:favs';
+const STORAGE_RECENT = 'nageurstats:recent';
+const STORAGE_THEME = 'nageurstats:theme';
+
+function getFavs() { try { return JSON.parse(localStorage.getItem(STORAGE_FAV)) || []; } catch { return []; } }
+function setFavs(arr) { localStorage.setItem(STORAGE_FAV, JSON.stringify(arr.slice(0, 30))); }
+function isFav(iuf) { return getFavs().some(s => s.iuf === iuf); }
+function toggleFav(meta) {
+  const list = getFavs();
+  const i = list.findIndex(s => s.iuf === meta.iuf);
+  if (i >= 0) list.splice(i, 1); else list.unshift(meta);
+  setFavs(list);
+  return i < 0;
+}
+function getRecent() { try { return JSON.parse(localStorage.getItem(STORAGE_RECENT)) || []; } catch { return []; } }
+function pushRecent(meta) {
+  const list = getRecent().filter(s => s.iuf !== meta.iuf);
+  list.unshift(meta);
+  localStorage.setItem(STORAGE_RECENT, JSON.stringify(list.slice(0, 8)));
+}
+
+// === Theme ===
+function applyTheme(theme) {
+  document.body.classList.toggle('light', theme === 'light');
+  const btn = document.querySelector('#theme-toggle');
+  if (btn) btn.textContent = theme === 'light' ? '☀️' : '🌙';
+  localStorage.setItem(STORAGE_THEME, theme);
+}
+applyTheme(localStorage.getItem(STORAGE_THEME) || 'dark');
+
+// === Custom cursor ===
+const cDot = document.querySelector('#cursor-dot');
+const cRing = document.querySelector('#cursor-ring');
+let rx = 0, ry = 0, mx = 0, my = 0;
+document.addEventListener('mousemove', e => {
+  mx = e.clientX; my = e.clientY;
+  if (cDot) { cDot.style.transform = `translate(${mx}px, ${my}px) translate(-50%,-50%)`; }
+});
+function ringTick() {
+  rx += (mx - rx) * 0.18; ry += (my - ry) * 0.18;
+  if (cRing) cRing.style.transform = `translate(${rx}px, ${ry}px) translate(-50%,-50%)`;
+  requestAnimationFrame(ringTick);
+}
+ringTick();
+document.addEventListener('mouseover', e => {
+  if (e.target.closest('button, a, .suggestion, .fav-pill, .tab, .tiltable, input')) {
+    cRing && cRing.classList.add('hover');
+  } else {
+    cRing && cRing.classList.remove('hover');
+  }
+});
+
+// === Theme toggle button ===
+document.querySelector('#theme-toggle').addEventListener('click', () => {
+  applyTheme(document.body.classList.contains('light') ? 'dark' : 'light');
+});
+
+// === Keyboard shortcuts ===
+document.addEventListener('keydown', e => {
+  if (e.target.tagName === 'INPUT') return;
+  if (e.key === '/') { e.preventDefault(); document.querySelector('#search').focus(); }
+  else if (e.key.toLowerCase() === 't') applyTheme(document.body.classList.contains('light') ? 'dark' : 'light');
+  else if (e.key === 'Escape') document.querySelector('#suggestions').classList.remove('active');
+});
+
+// === Konami easter egg ===
+const KONAMI = ['ArrowUp','ArrowUp','ArrowDown','ArrowDown','ArrowLeft','ArrowRight','ArrowLeft','ArrowRight','b','a'];
+let konamiBuf = [];
+document.addEventListener('keydown', e => {
+  konamiBuf.push(e.key); if (konamiBuf.length > KONAMI.length) konamiBuf.shift();
+  if (konamiBuf.join(',') === KONAMI.join(',')) {
+    document.body.classList.toggle('rainbow');
+    fireConfetti(); rainGold(2500);
+    konamiBuf = [];
+  }
+});
+
+// === Achievements engine ===
+function computeAchievements(mpp25, mpp50) {
+  const all = [...mpp25, ...mpp50];
+  if (!all.length) return [];
+  const strokes = new Set(all.map(p => strokeKey(p.event)));
+  const has = (cond) => all.some(cond);
+  const now = Date.now();
+  const oneYear = 365 * 86400000;
+  const recentPB = all.filter(p => {
+    const d = p.date.match(/(\d+)\/(\d+)\/(\d+)/);
+    if (!d) return false;
+    return now - new Date(+d[3], +d[2]-1, +d[1]).getTime() < oneYear;
+  });
+  const oldestTs = Math.min(...all.map(p => {
+    const d = p.date.match(/(\d+)\/(\d+)\/(\d+)/);
+    return d ? new Date(+d[3], +d[2]-1, +d[1]).getTime() : now;
+  }));
+  return [
+    { id: 'first', icon: '🥇', title: 'Premier PB', desc: 'Au moins 1 record perso', got: all.length >= 1 },
+    { id: '10pb', icon: '🎖️', title: 'Carnet bien rempli', desc: '10 PB ou plus', got: all.length >= 10 },
+    { id: 'multi', icon: '🌈', title: 'Caméléon', desc: 'PB dans les 5 nages (NL, Bra, Dos, Pap, 4N)', got: strokes.size >= 5 },
+    { id: 'sub30', icon: '⚡', title: 'Sub-30', desc: '50 NL sous les 30 secondes', got: has(p => p.event === '50 NL' && p.seconds < 30) },
+    { id: 'sub60', icon: '🚀', title: 'Sub-minute', desc: '100 NL sous la minute', got: has(p => p.event === '100 NL' && p.seconds < 60) },
+    { id: 'long', icon: '🌊', title: 'Marathonien', desc: 'A nagé du 800 ou 1500 NL', got: has(p => /^(800|1500) NL/.test(p.event)) },
+    { id: '1000', icon: '💎', title: 'Mille points', desc: 'Au moins 1 perf ≥ 1000 pts', got: has(p => p.points >= 1000) },
+    { id: 'elite', icon: '👑', title: 'Niveau Élite', desc: 'Une perf ≥ 1100 pts', got: has(p => p.points >= 1100) },
+    { id: 'fresh', icon: '🔥', title: 'En forme', desc: 'PB battu cette saison', got: recentPB.length >= 1 },
+    { id: 'streak', icon: '⚡', title: 'Série en feu', desc: '3+ PB dans les 12 derniers mois', got: recentPB.length >= 3 },
+    { id: 'vet', icon: '🏛️', title: 'Vétéran', desc: 'PB le plus ancien > 5 ans', got: (now - oldestTs) > 5*oneYear },
+    { id: 'nat', icon: '🏆', title: 'Nationaux atteints', desc: 'Au moins 1 perf en niveau NAT/N1/N2/INT', got: has(p => /NAT|N1|N2|INT/.test(p.level)) },
+    { id: 'twoPools', icon: '🏊', title: 'Deux bassins', desc: 'Records en 25m ET 50m', got: mpp25.length > 0 && mpp50.length > 0 },
+  ];
+}
+
+// === XP / Niveau ===
+const LEVEL_TIERS = [
+  { name: 'BRONZE', min: 0,    max: 700,  cls: 'level-bronze',  icon: '🥉' },
+  { name: 'ARGENT', min: 700,  max: 850,  cls: 'level-silver',  icon: '🥈' },
+  { name: 'OR',     min: 850,  max: 1000, cls: 'level-gold',    icon: '🥇' },
+  { name: 'DIAMANT',min: 1000, max: 1100, cls: 'level-diamond', icon: '💎' },
+  { name: 'ÉLITE',  min: 1100, max: 1300, cls: 'level-elite',   icon: '👑' },
+];
+function xpProgress(pts) {
+  const tier = LEVEL_TIERS.find(t => pts >= t.min && pts < t.max) || LEVEL_TIERS[LEVEL_TIERS.length-1];
+  const pct = Math.min(100, ((pts - tier.min) / (tier.max - tier.min)) * 100);
+  const next = LEVEL_TIERS[LEVEL_TIERS.indexOf(tier)+1];
+  return { tier, pct, nextLabel: next ? `→ ${next.name} à ${next.min} pts` : 'Maximum atteint 🏆' };
+}
+
+// === Sparkline / progress bar ===
+function ptsBar(points, max=1200) {
+  const pct = Math.min(100, points/max*100);
+  return `<span style="display:inline-flex;align-items:center;gap:8px">
+    <span class="pts">${fmtNum(points)}</span>
+    <span style="width:60px;height:6px;background:rgba(255,255,255,0.08);border-radius:999px;overflow:hidden;display:inline-block">
+      <span style="display:block;height:100%;width:${pct}%;background:linear-gradient(90deg,var(--aqua),var(--pink));border-radius:999px"></span>
+    </span></span>`;
+}
+
+// === State for compare mode ===
+let compareMode = false;
+let comparePending = false;
+let firstSwimmer = null;
+
+// === Page d'accueil (état vide) ===
+const POPULAR = [
+  { iuf: '1370928', name: 'WATTIEZ Axel', sex: 'H', year: '1992', club: 'ASPTT STRASBOURG' },
+];
+function renderHome() {
+  document.querySelector('#side-toggle').classList.remove('visible');
+  const favs = getFavs();
+  const recent = getRecent();
+  const list = (favs.length ? favs : recent);
+  const heroFavs = list.length
+    ? `<div class="hero-fav-title">${favs.length ? '⭐ Tes favoris' : '🕒 Tes nageurs récents'}</div>
+       <div class="hero-favs">
+         ${list.slice(0, 12).map(s => `
+           <div class="fav-pill" data-iuf="${s.iuf}" data-name="${s.name}" data-sex="${s.sex||''}" data-year="${s.year||''}" data-club="${s.club||''}">
+             <div class="avatar ${s.sex==='F'?'f':'h'}" style="width:24px;height:24px;font-size:0.7rem">${initials(s.name)}</div>
+             ${s.name}
+             ${favs.length ? `<span class="fav-x" data-fav-remove="${s.iuf}">✕</span>` : ''}
+           </div>`).join('')}
+       </div>` : '';
+  result.innerHTML = `
+    <div class="hero">
+      ${heroFavs}
+      <div class="hero-tips">
+        <div class="hero-tip">
+          <div class="hero-tip-icon">🔍</div>
+          <div class="hero-tip-title">Recherche maline</div>
+          <div class="hero-tip-desc">Tape "Léon Marchand" ou "Marchand Léon", avec ou sans accent</div>
+        </div>
+        <div class="hero-tip">
+          <div class="hero-tip-icon">⚔️</div>
+          <div class="hero-tip-title">Mode battle</div>
+          <div class="hero-tip-desc">Compare deux nageurs côte à côte sur radar</div>
+        </div>
+        <div class="hero-tip">
+          <div class="hero-tip-icon">⭐</div>
+          <div class="hero-tip-title">Favoris</div>
+          <div class="hero-tip-desc">Mets en favori, retrouve-les en accueil</div>
+        </div>
+        <div class="hero-tip">
+          <div class="hero-tip-icon">⌨️</div>
+          <div class="hero-tip-title">Raccourcis</div>
+          <div class="hero-tip-desc"><kbd>/</kbd> recherche · <kbd>T</kbd> thème · <kbd>Esc</kbd> fermer</div>
+        </div>
+      </div>
+    </div>
+  `;
+  result.querySelectorAll('.fav-pill').forEach(el => {
+    el.addEventListener('click', e => {
+      if (e.target.classList.contains('fav-x')) {
+        const id = e.target.dataset.favRemove;
+        const list = getFavs().filter(s => s.iuf !== id);
+        setFavs(list); renderHome();
+        return;
+      }
+      const d = el.dataset;
+      loadSwimmer(d.iuf, { iuf: d.iuf, name: d.name, sex: d.sex, year: d.year, club: d.club });
+    });
+  });
+}
+
+// === Side panel toggle ===
+const sidePanel = document.querySelector('#side-panel');
+const sideOverlay = document.querySelector('#panel-overlay');
+const sideToggleBtn = document.querySelector('#side-toggle');
+function openPanel() { sidePanel.classList.add('open'); sideOverlay.classList.add('open'); }
+function closePanel() { sidePanel.classList.remove('open'); sideOverlay.classList.remove('open'); }
+sideToggleBtn.addEventListener('click', openPanel);
+document.querySelector('#panel-close').addEventListener('click', closePanel);
+sideOverlay.addEventListener('click', closePanel);
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') closePanel();
+  if (e.target.tagName !== 'INPUT' && e.key.toLowerCase() === 'd') {
+    sidePanel.classList.contains('open') ? closePanel() : openPanel();
+  }
+});
+
+// Init au chargement : check URL ?iuf= sinon home
+(function init() {
+  const params = new URLSearchParams(window.location.search);
+  const iuf = params.get('iuf');
+  const name = params.get('name');
+  if (iuf && name) {
+    loadSwimmer(iuf, { iuf, name, sex: '', year: '', club: '' });
+    search.value = name;
+  } else {
+    renderHome();
+  }
+})();
+
+async function loadSwimmer(iuf, meta) {
+  // Skeleton loader
+  result.innerHTML = `
+    <div class="sk-card skeleton" style="height:160px;margin-bottom:24px"></div>
+    <div class="sk-grid">
+      <div class="sk-stat skeleton"></div><div class="sk-stat skeleton"></div>
+      <div class="sk-stat skeleton"></div><div class="sk-stat skeleton"></div>
+    </div>
+    <div style="margin-top:24px"><div class="sk-line lg skeleton"></div>
+      <div class="sk-line md skeleton"></div><div class="sk-line skeleton"></div></div>`;
+  try {
+    const r = await fetch('/api/swimmer/' + iuf);
+    const data = await r.json();
+    if (comparePending && firstSwimmer) {
+      renderCompare(firstSwimmer, { data, meta });
+      comparePending = false; compareMode = false;
+    } else {
+      pushRecent({ iuf, ...meta });
+      const url = new URL(window.location);
+      url.searchParams.set('iuf', iuf);
+      url.searchParams.set('name', meta.name);
+      window.history.replaceState({}, '', url);
+      renderSwimmer(data, meta);
+    }
+  } catch (e) {
+    result.innerHTML = '<div class="empty">Erreur : ' + e.message + '</div>';
+  }
+}
+
+function getLevel(pts) {
+  if (pts >= 1100) return { name: 'ÉLITE', cls: 'level-elite', icon: '👑' };
+  if (pts >= 1000) return { name: 'DIAMANT', cls: 'level-diamond', icon: '💎' };
+  if (pts >= 850)  return { name: 'OR', cls: 'level-gold', icon: '🥇' };
+  if (pts >= 700)  return { name: 'ARGENT', cls: 'level-silver', icon: '🥈' };
+  return { name: 'BRONZE', cls: 'level-bronze', icon: '🥉' };
+}
+
+function fmtNum(n) {
+  return Number(n).toLocaleString('fr-FR'); // 1095 -> "1 095"
+}
+
+function animateCounter(el, target, duration = 1400) {
+  const start = performance.now();
+  const from = 0;
+  const ease = t => 1 - Math.pow(1 - t, 3);
+  function tick(now) {
+    const t = Math.min(1, (now - start) / duration);
+    const v = Math.round(from + (target - from) * ease(t));
+    el.textContent = fmtNum(v);
+    if (t < 1) requestAnimationFrame(tick);
+    else el.textContent = fmtNum(target);
+  }
+  requestAnimationFrame(tick);
+}
+
+// Spotlight curseur (suit la souris sur les cartes)
+document.addEventListener('mousemove', e => {
+  document.querySelectorAll('.spotlight').forEach(card => {
+    const r = card.getBoundingClientRect();
+    const mx = e.clientX - r.left, my = e.clientY - r.top;
+    if (mx >= 0 && my >= 0 && mx <= r.width && my <= r.height) {
+      card.style.setProperty('--mx', mx + 'px');
+      card.style.setProperty('--my', my + 'px');
+    }
+  });
+});
+
+// Tilt 3D (suit la souris en perspective)
+function attachTilt(el) {
+  if (!el || el._tiltBound) return;
+  el._tiltBound = true;
+  el.style.transformStyle = 'preserve-3d';
+  el.parentElement && (el.parentElement.style.perspective = '1200px');
+  el.addEventListener('mousemove', e => {
+    const r = el.getBoundingClientRect();
+    const cx = (e.clientX - r.left) / r.width - 0.5;
+    const cy = (e.clientY - r.top) / r.height - 0.5;
+    el.style.transform = `rotateY(${cx * 6}deg) rotateX(${-cy * 5}deg) translateZ(0)`;
+  });
+  el.addEventListener('mouseleave', () => {
+    el.style.transform = 'rotateY(0deg) rotateX(0deg)';
+  });
+}
+
+// Pluie de particules dorées (Élite)
+function rainGold(duration = 3500) {
+  const symbols = ['✦','✧','★','✨','◆'];
+  const end = performance.now() + duration;
+  function spawn() {
+    if (performance.now() > end) return;
+    const p = document.createElement('div');
+    p.className = 'gold-particle';
+    p.textContent = symbols[Math.floor(Math.random()*symbols.length)];
+    p.style.left = Math.random() * 100 + 'vw';
+    p.style.fontSize = (10 + Math.random() * 14) + 'px';
+    p.style.animationDuration = (3 + Math.random() * 3) + 's';
+    document.body.appendChild(p);
+    setTimeout(() => p.remove(), 6000);
+    setTimeout(spawn, 80 + Math.random() * 140);
+  }
+  spawn();
+}
+
+function fireConfetti() {
+  if (typeof confetti !== 'function') return;
+  const colors = ['#38e1ff', '#a78bfa', '#ffd166', '#f472b6'];
+  confetti({ particleCount: 80, spread: 75, origin: { y: 0.3 }, colors });
+  setTimeout(() => confetti({ particleCount: 50, spread: 100, origin: { y: 0.4 }, colors }), 200);
+}
+
+async function shareCard() {
+  const card = document.querySelector('.swimmer-card');
+  if (!card || typeof html2canvas !== 'function') return;
+  const btn = document.querySelector('#btn-share');
+  if (btn) btn.textContent = '📸 Capture…';
+  try {
+    const canvas = await html2canvas(card, { backgroundColor: '#03142e', scale: 2 });
+    const link = document.createElement('a');
+    link.download = 'nageurstats-card.png';
+    link.href = canvas.toDataURL('image/png');
+    link.click();
+  } finally {
+    if (btn) btn.innerHTML = '📤 Partager (PNG)';
+  }
+}
+
+function dateToTs(d) {
+  const m = d.match(/(\d+)\/(\d+)\/(\d+)/);
+  if (!m) return 0;
+  return new Date(+m[3], +m[2]-1, +m[1]).getTime();
+}
+
+function renderSwimmer(data, meta) {
+  Object.values(charts).forEach(c => c && c.destroy());
+  const a = data.analysis;
+  const mpp25 = (data.pools['25'] && data.pools['25'].mpp) || [];
+  const mpp50 = (data.pools['50'] && data.pools['50'].mpp) || [];
+  const allMpp = [...mpp25, ...mpp50];
+
+  if (!a) {
+    result.innerHTML = `<div class="swimmer-card"><div class="swimmer-top">
+      <div class="big-avatar ${meta.sex==='F'?'f':'h'}">${initials(meta.name)}</div>
+      <div class="swimmer-info"><h2>${meta.name}</h2></div>
+    </div></div><div class="empty">Aucune performance trouvée pour ce nageur.</div>`;
+    return;
+  }
+
+  // Top 3 podium
+  const sortedByPts = [...mpp25, ...mpp50].sort((a,b) => b.points - a.points).slice(0, 3);
+  const medals = ['🥇', '🥈', '🥉'];
+  const classes = ['gold', 'silver', 'bronze'];
+  const podiumOrder = [1, 0, 2]; // affichage: argent, or, bronze
+
+  const lvl = getLevel(a.best_points);
+  const xp = xpProgress(a.best_points);
+  const achievements = computeAchievements(mpp25, mpp50);
+  const unlocked = achievements.filter(x => x.got).length;
+  // Streak: PB battus dans les 12 derniers mois
+  const now = Date.now(), oneYear = 365*86400000;
+  const recentPbCount = [...mpp25, ...mpp50].filter(p => {
+    const d = p.date.match(/(\d+)\/(\d+)\/(\d+)/);
+    return d && (now - new Date(+d[3], +d[2]-1, +d[1]).getTime() < oneYear);
+  }).length;
+  const fav = isFav(meta.iuf || '');
+  result.innerHTML = `
+    <div class="swimmer-card tiltable spotlight ${lvl.cls === 'level-elite' ? 'elite-aura' : ''}">
+      <div class="swimmer-top">
+        <div class="big-avatar ${meta.sex==='F'?'f':'h'}">${initials(meta.name)}</div>
+        <div class="swimmer-info">
+          <h2>${meta.name}</h2>
+          <div class="swimmer-tags">
+            ${meta.year ? `<span class="tag">📅 ${meta.year}</span>` : ''}
+            ${meta.sex ? `<span class="tag">${meta.sex==='F'?'♀ Femme':'♂ Homme'}</span>` : ''}
+            ${a.clubs.map(c => `<span class="tag club">🏊 ${c}</span>`).join('')}
+          </div>
+          <div class="level-badge ${lvl.cls}">${lvl.icon} Niveau ${lvl.name}${recentPbCount >= 3 ? `<span class="streak">🔥 ${recentPbCount} PB</span>` : ''}</div>
+          <div class="xp-wrap">
+            <div class="xp-label"><span>${xp.tier.name} · ${fmtNum(a.best_points)} pts</span><span>${xp.nextLabel}</span></div>
+            <div class="xp-bar"><div class="xp-fill" data-pct="${xp.pct}"></div></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="stats-grid">
+        <div class="stat">
+          <div class="stat-label">Épreuves PB</div>
+          <div class="stat-value" data-count="${a.total_events}">0</div>
+          <div class="stat-sub">${a.total_perfs_db || '?'} courses au total</div>
+        </div>
+        <div class="stat">
+          <div class="stat-label">Top score</div>
+          <div class="stat-value" data-count="${a.best_points}">0</div>
+          <div class="stat-sub">${a.best_perf.event} · ${a.best_perf.time}</div>
+        </div>
+        <div class="stat">
+          <div class="stat-label">Moyenne points</div>
+          <div class="stat-value" data-count="${a.avg_points}">0</div>
+          <div class="stat-sub">sur tous les PB</div>
+        </div>
+        <div class="stat">
+          <div class="stat-label">Bassins</div>
+          <div class="stat-value" style="font-size:1.3rem;">${mpp25.length}·25m / ${mpp50.length}·50m</div>
+        </div>
+      </div>
+
+      <div class="actions-row">
+        <button class="btn btn-primary" id="btn-compare">⚔️ Comparer à un autre nageur</button>
+        <button class="btn" id="btn-share">📤 Partager (PNG)</button>
+        <button class="star-btn ${fav?'active':''}" id="btn-fav" title="Mettre en favori">${fav?'⭐ Favori':'☆ Favori'}</button>
+        <button class="btn" id="btn-home">🏠 Accueil</button>
+      </div>
+    </div>
+
+
+    ${sortedByPts.length > 0 ? `
+    <div class="podium-section">
+      <div class="section-title">🏆 Top 3 performances</div>
+      <div class="podium">
+        ${podiumOrder.map(i => sortedByPts[i] ? `
+          <div class="podium-place ${classes[i]}" style="${i===0?'padding-top:28px;padding-bottom:28px':''}">
+            <div class="medal">${medals[i]}</div>
+            <div class="podium-event">${sortedByPts[i].event}</div>
+            <div class="podium-time">${sortedByPts[i].time}</div>
+            <div class="podium-pts">${sortedByPts[i].points} pts</div>
+            <div class="podium-date">${sortedByPts[i].location} · ${sortedByPts[i].date}</div>
+          </div>` : '<div></div>').join('')}
+      </div>
+    </div>` : ''}
+
+    <div class="tabs-row">
+      <div class="tab active" data-pool="25">🌊 Bassin 25m <span class="tab-count">${mpp25.length}</span></div>
+      <div class="tab" data-pool="50">🏊 Bassin 50m <span class="tab-count">${mpp50.length}</span></div>
+    </div>
+
+    <div id="pool-content"></div>
+
+    <div class="charts-grid">
+      <div class="chart-card">
+        <h3>🕷️ Profil de nageur — points max par nage</h3>
+        <canvas id="chart-radar"></canvas>
+      </div>
+      <div class="chart-card">
+        <h3>📊 Points par épreuve</h3>
+        <canvas id="chart-points"></canvas>
+      </div>
+      <div class="chart-card">
+        <h3>🍩 Répartition par nage</h3>
+        <canvas id="chart-doughnut"></canvas>
+      </div>
+      <div class="chart-card">
+        <h3>⚡ Vitesse moyenne (m/s)</h3>
+        <canvas id="chart-speed"></canvas>
+      </div>
+      <div class="chart-card" style="grid-column: 1 / -1;">
+        <h3>📈 Progression dans le temps (meilleur score par mois)</h3>
+        <canvas id="chart-progression"></canvas>
+      </div>
+      <div class="chart-card" style="grid-column: 1 / -1;">
+        <h3>📅 Heatmap d'activité (courses par mois)</h3>
+        <div id="heatmap"></div>
+      </div>
+    </div>
+  `;
+
+  function showPool(pool) {
+    const mpp = pool === '25' ? mpp25 : mpp50;
+    const c = $('#pool-content');
+    if (mpp.length === 0) {
+      c.innerHTML = '<div class="table-wrap"><div class="empty">Pas de records personnels en bassin '+pool+'m</div></div>';
+      return;
+    }
+    c.innerHTML = `<div class="table-wrap"><table>
+      <thead><tr>
+        <th>Épreuve</th><th>Temps</th><th>Points</th><th>Âge</th><th>Lieu</th><th>Date</th><th>Niv.</th>
+      </tr></thead>
+      <tbody>
+        ${mpp.map(p => {
+          const sk = strokeKey(p.event);
+          const splitsHtml = (p.splits && p.splits.length) ? `
+            <span class="splits-tip"><table>
+              ${p.splits.map(s => `<tr>
+                <td class="lbl">${s.distance} m</td>
+                <td class="cum">${s.cumul}</td>
+                <td class="lap">+${s.lap}</td>
+              </tr>`).join('')}
+            </table></span>` : '';
+          const timeCell = splitsHtml
+            ? `<span class="time-wrap"><span class="time">${p.time}</span> 📊${splitsHtml}</span>`
+            : `<span class="time">${p.time}</span>`;
+          return `<tr>
+            <td><span class="stroke-pill stroke-${sk}">${p.event}</span></td>
+            <td>${timeCell}</td>
+            <td class="pts">${p.points}</td>
+            <td>${p.age}</td>
+            <td>${p.location}</td>
+            <td>${p.date}</td>
+            <td class="lvl-${p.level}">${p.level}</td>
+          </tr>`;
+        }).join('')}
+      </tbody>
+    </table></div>`;
+  }
+
+  document.querySelectorAll('.tab').forEach(t => {
+    t.addEventListener('click', () => {
+      document.querySelectorAll('.tab').forEach(x => x.classList.remove('active'));
+      t.classList.add('active');
+      showPool(t.dataset.pool);
+    });
+  });
+  showPool('25');
+
+  // === Radar : profil par nage (best score par nage) ===
+  const STROKES = ['NL', 'Bra', 'Dos', 'Pap', '4N'];
+  const radarMax = (mpp) => {
+    const out = { NL: 0, Bra: 0, Dos: 0, Pap: 0, '4N': 0 };
+    mpp.forEach(p => {
+      const k = strokeKey(p.event);
+      if (p.points > out[k]) out[k] = p.points;
+    });
+    return out;
+  };
+  const r25 = radarMax(mpp25), r50 = radarMax(mpp50);
+  charts.radar = new Chart($('#chart-radar').getContext('2d'), {
+    type: 'radar',
+    data: {
+      labels: STROKES.map(s => STROKE_LABEL[s]),
+      datasets: [
+        { label: '25m', data: STROKES.map(s => r25[s]),
+          backgroundColor: 'rgba(56,225,255,0.25)', borderColor: '#38e1ff',
+          borderWidth: 2, pointBackgroundColor: '#38e1ff', pointRadius: 4 },
+        { label: '50m', data: STROKES.map(s => r50[s]),
+          backgroundColor: 'rgba(167,139,250,0.25)', borderColor: '#a78bfa',
+          borderWidth: 2, pointBackgroundColor: '#a78bfa', pointRadius: 4 },
+      ]
+    },
+    options: {
+      responsive: true,
+      plugins: {
+        legend: { labels: { color: '#cbd5e1', font: { weight: 600 } } },
+        tooltip: {
+          backgroundColor: 'rgba(3,20,46,0.95)',
+          borderColor: 'rgba(56,225,255,0.3)', borderWidth: 1,
+          titleColor: '#38e1ff', bodyColor: '#fff', padding: 12,
+          callbacks: { label: ctx => ctx.dataset.label + ' : ' + ctx.parsed.r + ' pts' }
+        }
+      },
+      scales: {
+        r: {
+          beginAtZero: true,
+          angleLines: { color: 'rgba(56,225,255,0.15)' },
+          grid: { color: 'rgba(56,225,255,0.1)' },
+          pointLabels: { color: '#e2e8f0', font: { size: 13, weight: 700 } },
+          ticks: { color: '#64748b', backdropColor: 'transparent', font: { size: 10 } }
+        }
+      }
+    }
+  });
+
+  // === Chart : points par épreuve (groupé 25/50) ===
+  const evMap = {};
+  mpp25.forEach(p => { evMap[p.event] = evMap[p.event] || {}; evMap[p.event]['25'] = p.points; });
+  mpp50.forEach(p => { evMap[p.event] = evMap[p.event] || {}; evMap[p.event]['50'] = p.points; });
+  const labels = Object.keys(evMap).sort((a,b) => {
+    const numA = parseInt(a), numB = parseInt(b);
+    return numA - numB;
+  });
+  charts.points = new Chart($('#chart-points').getContext('2d'), {
+    type: 'bar',
+    data: {
+      labels,
+      datasets: [
+        { label: '25m', data: labels.map(e => evMap[e]['25'] || 0),
+          backgroundColor: 'rgba(56,225,255,0.7)', borderColor: '#38e1ff', borderWidth: 1, borderRadius: 6 },
+        { label: '50m', data: labels.map(e => evMap[e]['50'] || 0),
+          backgroundColor: 'rgba(167,139,250,0.7)', borderColor: '#a78bfa', borderWidth: 1, borderRadius: 6 },
+      ]
+    },
+    options: chartOpts('Points FFN')
+  });
+
+  // === Chart : progression dans le temps ===
+  const allPts = [...mpp25.map(p=>({...p,pool:'25'})), ...mpp50.map(p=>({...p,pool:'50'}))]
+    .map(p => ({ ...p, ts: dateToTs(p.date) }))
+    .filter(p => p.ts > 0)
+    .sort((a,b) => a.ts - b.ts);
+
+  // groupé par mois, on prend max points par mois
+  const byMonth = {};
+  allPts.forEach(p => {
+    const d = new Date(p.ts);
+    const k = d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0');
+    if (!byMonth[k] || byMonth[k] < p.points) byMonth[k] = p.points;
+  });
+  const monthKeys = Object.keys(byMonth).sort();
+  // === Animations / hooks ===
+  document.querySelectorAll('.stat-value[data-count]').forEach(el => {
+    animateCounter(el, parseInt(el.dataset.count, 10));
+  });
+  // Format français pour les chiffres déjà affichés
+  document.querySelectorAll('.podium-pts, .pts').forEach(el => {
+    const n = parseInt(el.textContent, 10);
+    if (!isNaN(n)) el.textContent = el.textContent.replace(/\d+/, fmtNum(n));
+  });
+  // Tilt 3D + spotlight déjà géré par CSS
+  document.querySelectorAll('.tiltable').forEach(attachTilt);
+  if (a.best_points >= 1000) setTimeout(fireConfetti, 350);
+  if (a.best_points >= 1100) setTimeout(rainGold, 500); // Élite -> pluie dorée
+
+  const btnCompare = document.querySelector('#btn-compare');
+  const btnShare = document.querySelector('#btn-share');
+  if (btnCompare) btnCompare.addEventListener('click', () => {
+    firstSwimmer = { data, meta };
+    compareMode = true; comparePending = true;
+    search.value = '';
+    search.placeholder = '⚔️ Cherche le 2ᵉ nageur à comparer…';
+    search.focus();
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+    const banner = document.createElement('div');
+    banner.className = 'compare-banner';
+    banner.innerHTML = `<span>⚔️ Mode comparaison activé · 1ᵉʳ : <strong>${meta.name}</strong></span>
+      <span class="compare-vs">VS</span><span style="color:#94a3b8">cherche le 2ᵉ nageur ↑</span>
+      <button class="btn" id="cancel-compare" style="margin-left:auto">✖ Annuler</button>`;
+    result.prepend(banner);
+    document.querySelector('#cancel-compare').addEventListener('click', () => {
+      compareMode = false; comparePending = false; firstSwimmer = null;
+      search.placeholder = 'Léon Marchand, Marchand Léon, ou juste Marchand...';
+      banner.remove();
+    });
+  });
+  if (btnShare) btnShare.addEventListener('click', shareCard);
+
+  // Bouton favori
+  const btnFav = document.querySelector('#btn-fav');
+  if (btnFav) btnFav.addEventListener('click', () => {
+    const m = { iuf: meta.iuf, name: meta.name, sex: meta.sex, year: meta.year, club: meta.club };
+    const now = toggleFav(m);
+    btnFav.classList.toggle('active', now);
+    btnFav.textContent = now ? '⭐ Favori' : '☆ Favori';
+    if (now) fireConfetti();
+  });
+  const btnHome = document.querySelector('#btn-home');
+  if (btnHome) btnHome.addEventListener('click', () => {
+    const url = new URL(window.location);
+    url.searchParams.delete('iuf'); url.searchParams.delete('name');
+    window.history.replaceState({}, '', url);
+    document.querySelector('#search').value = '';
+    renderHome();
+  });
+
+  // Animer XP bar
+  setTimeout(() => {
+    const fill = document.querySelector('.xp-fill');
+    if (fill) fill.style.width = fill.dataset.pct + '%';
+  }, 100);
+
+  // === Panneau latéral ===
+  const levels = {};
+  allMpp.forEach(p => { levels[p.level] = (levels[p.level] || 0) + 1; });
+  const levelLines = Object.entries(levels).sort((a,b) => b[1]-a[1])
+    .map(([k,v]) => `<div class="panel-mini-stat"><span class="lbl lvl-${k}">${k}</span><span class="val">${v}</span></div>`)
+    .join('');
+  const oldestPb = [...allMpp].sort((a,b) => {
+    const pa = a.date.split('/').reverse().join(''); const pb = b.date.split('/').reverse().join('');
+    return pa.localeCompare(pb);
+  })[0];
+  const recentPbs = [...allMpp].sort((a,b) => {
+    const pa = a.date.split('/').reverse().join(''); const pb = b.date.split('/').reverse().join('');
+    return pb.localeCompare(pa);
+  }).slice(0, 5);
+  const cities = [...new Set(allMpp.map(p => p.location))].slice(0, 8);
+
+  document.querySelector('#panel-content').innerHTML = `
+    <div class="panel-section">
+      <h4>🏅 Succès débloqués <span class="tag" style="margin-left:6px">${unlocked}/${achievements.length}</span></h4>
+      <div class="ach-grid">
+        ${achievements.map((x,i) => `
+          <div class="ach ${x.got?'unlocked':'locked'}" style="animation-delay:${i*30}ms">
+            <div class="ach-icon">${x.icon}</div>
+            <div class="ach-info">
+              <div class="ach-title">${x.title}</div>
+              <div class="ach-desc">${x.desc}</div>
+            </div>
+          </div>`).join('')}
+      </div>
+    </div>
+
+    <div class="panel-section">
+      <h4>📊 Stats détaillées</h4>
+      <div class="panel-mini-stat"><span class="lbl">Total courses (BDD FFN)</span><span class="val">${fmtNum(a.total_perfs_db || 0)}</span></div>
+      <div class="panel-mini-stat"><span class="lbl">Records bassin 25m</span><span class="val">${mpp25.length}</span></div>
+      <div class="panel-mini-stat"><span class="lbl">Records bassin 50m</span><span class="val">${mpp50.length}</span></div>
+      <div class="panel-mini-stat"><span class="lbl">PB cette saison</span><span class="val">🔥 ${recentPbCount}</span></div>
+      <div class="panel-mini-stat"><span class="lbl">Top score</span><span class="val">${fmtNum(a.best_points)} pts</span></div>
+      <div class="panel-mini-stat"><span class="lbl">Moyenne</span><span class="val">${fmtNum(a.avg_points)} pts</span></div>
+      ${oldestPb ? `<div class="panel-mini-stat"><span class="lbl">Plus ancien PB</span><span class="val">${oldestPb.date}</span></div>` : ''}
+    </div>
+
+    <div class="panel-section">
+      <h4>🏆 Répartition par niveau</h4>
+      ${levelLines || '<div style="color:#94a3b8">Aucune donnée</div>'}
+    </div>
+
+    <div class="panel-section">
+      <h4>🕒 Derniers PB</h4>
+      ${recentPbs.map(p => `
+        <div class="panel-mini-stat">
+          <span><span class="stroke-pill stroke-${strokeKey(p.event)}">${p.event}</span> ${p.date}</span>
+          <span class="val">${p.time}</span>
+        </div>`).join('')}
+    </div>
+
+    <div class="panel-section">
+      <h4>📍 Villes des courses</h4>
+      <div style="display:flex;flex-wrap:wrap;gap:6px">
+        ${cities.map(c => `<span class="tag club">${c}</span>`).join('')}
+      </div>
+    </div>
+  `;
+  document.querySelector('#side-toggle').classList.add('visible');
+
+  // === Doughnut : répartition par nage ===
+  const strokeCounts = { NL:0, Bra:0, Dos:0, Pap:0, '4N':0 };
+  allMpp.forEach(p => strokeCounts[strokeKey(p.event)]++);
+  charts.doughnut = new Chart($('#chart-doughnut').getContext('2d'), {
+    type: 'doughnut',
+    data: {
+      labels: ['NL', 'Bra', 'Dos', 'Pap', '4N'].map(k => STROKE_LABEL[k]),
+      datasets: [{
+        data: ['NL','Bra','Dos','Pap','4N'].map(k => strokeCounts[k]),
+        backgroundColor: ['#38bdf8', '#a78bfa', '#f472b6', '#ffd166', '#4ade80'],
+        borderColor: 'rgba(0,0,0,0.3)', borderWidth: 2,
+      }]
+    },
+    options: {
+      responsive: true, cutout: '60%',
+      plugins: { legend: { position: 'bottom', labels: { color: '#cbd5e1', font: {weight: 600} } } }
+    }
+  });
+
+  // === Vitesse m/s : pour chaque MPP, vitesse = distance / seconds ===
+  const speedData = allMpp
+    .map(p => {
+      const dm = p.event.match(/^(\d+)/);
+      const dist = dm ? parseInt(dm[1]) : 0;
+      return { event: p.event, speed: p.seconds ? dist / p.seconds : 0, points: p.points };
+    })
+    .filter(x => x.speed > 0)
+    .sort((a,b) => b.speed - a.speed)
+    .slice(0, 12);
+  charts.speed = new Chart($('#chart-speed').getContext('2d'), {
+    type: 'bar',
+    data: {
+      labels: speedData.map(d => d.event),
+      datasets: [{
+        label: 'm/s', data: speedData.map(d => +d.speed.toFixed(2)),
+        backgroundColor: speedData.map(d => {
+          const sk = strokeKey(d.event);
+          return { NL:'#38bdf8', Bra:'#a78bfa', Dos:'#f472b6', Pap:'#ffd166', '4N':'#4ade80' }[sk];
+        }),
+        borderRadius: 6,
+      }]
+    },
+    options: chartOpts('m/s')
+  });
+
+  // === Heatmap : courses par mois sur 5 ans ===
+  const counts = {};
+  allMpp.forEach(p => {
+    const d = p.date.match(/(\d+)\/(\d+)\/(\d+)/);
+    if (!d) return;
+    const k = d[3] + '-' + d[2].padStart(2, '0');
+    counts[k] = (counts[k] || 0) + 1;
+  });
+  const years = [...new Set(Object.keys(counts).map(k => k.split('-')[0]))].sort().slice(-5);
+  if (years.length) {
+    const monthsAbbr = ['Jan','Fév','Mar','Avr','Mai','Juin','Juil','Août','Sep','Oct','Nov','Déc'];
+    let html = `<div class="heatmap-month-row"><div></div>${monthsAbbr.map(m => `<div style="text-align:center">${m}</div>`).join('')}</div>`;
+    years.forEach(y => {
+      html += `<div class="heatmap"><div class="heatmap-row-label">${y}</div>`;
+      for (let m = 1; m <= 12; m++) {
+        const c = counts[`${y}-${String(m).padStart(2,'0')}`] || 0;
+        const lvl = c === 0 ? 0 : c <= 1 ? 1 : c <= 2 ? 2 : c <= 4 ? 3 : 4;
+        html += `<div class="heatmap-cell" data-c="${lvl}" title="${y}/${String(m).padStart(2,'0')} : ${c} course${c>1?'s':''}"></div>`;
+      }
+      html += `</div>`;
+    });
+    document.querySelector('#heatmap').innerHTML = html;
+  } else {
+    document.querySelector('#heatmap').innerHTML = '<div class="empty">Pas assez de données</div>';
+  }
+
+  charts.progression = new Chart($('#chart-progression').getContext('2d'), {
+    type: 'line',
+    data: {
+      labels: monthKeys,
+      datasets: [{
+        label: 'Meilleur score du mois',
+        data: monthKeys.map(k => byMonth[k]),
+        borderColor: '#38e1ff', backgroundColor: 'rgba(56,225,255,0.15)',
+        fill: true, tension: 0.35, pointBackgroundColor: '#38e1ff',
+        pointBorderColor: '#fff', pointBorderWidth: 2, pointRadius: 4
+      }]
+    },
+    options: chartOpts('Points FFN')
+  });
+}
+
+function bestByStroke(mpp) {
+  const out = { NL:0, Bra:0, Dos:0, Pap:0, '4N':0 };
+  mpp.forEach(p => { const k = strokeKey(p.event); if (p.points > out[k]) out[k] = p.points; });
+  return out;
+}
+
+function renderCompare(s1, s2) {
+  Object.values(charts).forEach(c => c && c.destroy());
+  const STROKES = ['NL', 'Bra', 'Dos', 'Pap', '4N'];
+
+  const all1 = [...(s1.data.pools['25'].mpp||[]), ...(s1.data.pools['50'].mpp||[])];
+  const all2 = [...(s2.data.pools['25'].mpp||[]), ...(s2.data.pools['50'].mpp||[])];
+  const r1 = bestByStroke(all1), r2 = bestByStroke(all2);
+
+  // Score battle: pour chaque nage, qui gagne
+  const wins1 = STROKES.filter(s => r1[s] > r2[s]).length;
+  const wins2 = STROKES.filter(s => r2[s] > r1[s]).length;
+  const winnerName = wins1 > wins2 ? s1.meta.name : (wins2 > wins1 ? s2.meta.name : 'Égalité');
+
+  const a1 = s1.data.analysis, a2 = s2.data.analysis;
+
+  result.innerHTML = `
+    <div class="swimmer-card tiltable spotlight">
+      <div style="text-align:center;margin-bottom:24px;position:relative;z-index:1">
+        <div style="font-size:1rem;color:#94a3b8;letter-spacing:0.1em;text-transform:uppercase;font-weight:700">⚔️ Battle</div>
+        <div style="font-size:1.6rem;font-weight:800;margin-top:6px">${s1.meta.name} <span style="color:#a78bfa;margin:0 12px">VS</span> ${s2.meta.name}</div>
+        <div style="margin-top:14px"><span class="tag" style="font-size:1rem;padding:8px 18px">🏆 Vainqueur : <strong style="margin-left:4px;color:#ffd166">${winnerName}</strong> (${Math.max(wins1, wins2)}/${STROKES.length} nages)</span></div>
+      </div>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;position:relative;z-index:1">
+        <div class="stat" style="text-align:center">
+          <div class="big-avatar ${s1.meta.sex==='F'?'f':'h'}" style="margin:0 auto 12px">${initials(s1.meta.name)}</div>
+          <div style="font-weight:800;font-size:1.1rem">${s1.meta.name}</div>
+          <div class="stat-value" style="margin-top:8px">${a1?a1.best_points:0}</div>
+          <div class="stat-sub">top score · ${a1?a1.total_events:0} épreuves</div>
+        </div>
+        <div class="stat" style="text-align:center">
+          <div class="big-avatar ${s2.meta.sex==='F'?'f':'h'}" style="margin:0 auto 12px">${initials(s2.meta.name)}</div>
+          <div style="font-weight:800;font-size:1.1rem">${s2.meta.name}</div>
+          <div class="stat-value" style="margin-top:8px;color:#a78bfa">${a2?a2.best_points:0}</div>
+          <div class="stat-sub">top score · ${a2?a2.total_events:0} épreuves</div>
+        </div>
+      </div>
+
+      <div class="actions-row" style="justify-content:center">
+        <button class="btn" id="btn-back">← Retour fiche solo</button>
+      </div>
+    </div>
+
+    <div class="chart-card">
+      <h3>🕷️ Radar comparé — points max par nage</h3>
+      <canvas id="chart-vs-radar"></canvas>
+    </div>
+
+    <div class="chart-card" style="margin-top:20px">
+      <h3>📊 Bataille par nage</h3>
+      <canvas id="chart-vs-bar"></canvas>
+    </div>
+  `;
+
+  charts.vsRadar = new Chart($('#chart-vs-radar').getContext('2d'), {
+    type: 'radar',
+    data: {
+      labels: STROKES.map(s => STROKE_LABEL[s]),
+      datasets: [
+        { label: s1.meta.name, data: STROKES.map(s => r1[s]),
+          backgroundColor: 'rgba(56,225,255,0.25)', borderColor: '#38e1ff',
+          borderWidth: 2, pointBackgroundColor: '#38e1ff', pointRadius: 5 },
+        { label: s2.meta.name, data: STROKES.map(s => r2[s]),
+          backgroundColor: 'rgba(244,114,182,0.25)', borderColor: '#f472b6',
+          borderWidth: 2, pointBackgroundColor: '#f472b6', pointRadius: 5 },
+      ]
+    },
+    options: {
+      responsive: true,
+      plugins: { legend: { labels: { color: '#cbd5e1', font: { weight: 700 } } } },
+      scales: {
+        r: { beginAtZero: true,
+          angleLines: { color: 'rgba(56,225,255,0.15)' },
+          grid: { color: 'rgba(56,225,255,0.1)' },
+          pointLabels: { color: '#e2e8f0', font: { size: 13, weight: 700 } },
+          ticks: { color: '#64748b', backdropColor: 'transparent' } }
+      }
+    }
+  });
+
+  charts.vsBar = new Chart($('#chart-vs-bar').getContext('2d'), {
+    type: 'bar',
+    data: {
+      labels: STROKES.map(s => STROKE_LABEL[s]),
+      datasets: [
+        { label: s1.meta.name, data: STROKES.map(s => r1[s]),
+          backgroundColor: 'rgba(56,225,255,0.7)', borderRadius: 6 },
+        { label: s2.meta.name, data: STROKES.map(s => r2[s]),
+          backgroundColor: 'rgba(244,114,182,0.7)', borderRadius: 6 },
+      ]
+    },
+    options: chartOpts('Points FFN max')
+  });
+
+  document.querySelector('#btn-back').addEventListener('click', () => {
+    renderSwimmer(s1.data, s1.meta);
+  });
+
+  search.placeholder = 'Léon Marchand, Marchand Léon, ou juste Marchand...';
+  fireConfetti();
+}
+
+function chartOpts(yLabel) {
+  return {
+    responsive: true,
+    plugins: {
+      legend: { labels: { color: '#cbd5e1', font: { weight: 600 } } },
+      tooltip: {
+        backgroundColor: 'rgba(3,20,46,0.95)',
+        borderColor: 'rgba(56,225,255,0.3)', borderWidth: 1,
+        padding: 12, titleColor: '#38e1ff', bodyColor: '#fff'
+      }
+    },
+    scales: {
+      x: { ticks: { color: '#94a3b8' }, grid: { color: 'rgba(255,255,255,0.04)' } },
+      y: { ticks: { color: '#94a3b8' }, grid: { color: 'rgba(255,255,255,0.04)' },
+        title: { display: true, text: yLabel, color: '#94a3b8', font: {weight: 600} } }
+    }
+  };
+}
+</script>
+</body>
+</html>

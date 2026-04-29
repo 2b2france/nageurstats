@@ -1,0 +1,40 @@
+=== DEPLOIEMENT NAGEURSTATS ===
+
+Étape 1 : compte GitHub
+  -> https://github.com/signup
+  -> Crée un repo public nommé "nageurstats"
+  -> Note l'URL (ex: https://github.com/tonpseudo/nageurstats.git)
+
+Étape 2 : pousser le code
+  Ouvre PowerShell ou Git Bash dans ce dossier et lance :
+
+    git init
+    git add .
+    git commit -m "Initial commit"
+    git branch -M main
+    git remote add origin URL_DU_REPO
+    git push -u origin main
+
+  (à la première push, il va te demander de te connecter à GitHub)
+
+Étape 3 : déployer sur Render (gratuit, sans CB)
+  -> https://render.com/
+  -> "Sign up with GitHub" (autorise l'accès)
+  -> Dashboard -> "New +" -> "Web Service"
+  -> Sélectionne ton repo "nageurstats"
+  -> Render détecte tout automatiquement (render.yaml)
+  -> Clique "Create Web Service"
+  -> Attends 2-3 minutes que ça build
+  -> Tu auras une URL du genre : https://nageurstats.onrender.com
+
+C'EST EN LIGNE !
+
+Note : le plan gratuit Render met l'app en veille après 15 min sans visite.
+Le premier visiteur après inactivité attend ~30s pour le réveil. Normal.
+
+Pour mettre à jour le site plus tard :
+  Modifie le code, puis :
+    git add .
+    git commit -m "Mise a jour"
+    git push
+  Render redéploie automatiquement.
