@@ -533,17 +533,65 @@
 
   /* Empty state hero */
   .hero {
-    text-align: center; padding: 30px 20px 60px;
-    animation: fadeIn 0.6s;
+    padding: 0 0 60px; animation: fadeIn 0.6s;
   }
-  .hero-fav-title {
-    font-size: 0.85rem; color: #94a3b8; text-transform: uppercase;
-    letter-spacing: 0.1em; margin-bottom: 14px;
+  .hero-stats {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(180px,1fr));
+    gap: 16px; max-width: 900px; margin: 24px auto 40px;
   }
-  .hero-favs {
-    display: flex; flex-wrap: wrap; justify-content: center; gap: 10px;
-    max-width: 800px; margin: 0 auto 32px;
+  .hero-stat {
+    background: linear-gradient(135deg, rgba(56,225,255,0.08), rgba(167,139,250,0.04));
+    border: 1px solid rgba(56,225,255,0.18);
+    border-radius: 16px; padding: 18px 20px; text-align: center;
+    transition: all 0.25s;
   }
+  .hero-stat:hover { transform: translateY(-3px); border-color: var(--aqua); }
+  .hero-stat-num {
+    font-size: 2.2rem; font-weight: 900;
+    background: linear-gradient(135deg, var(--aqua), var(--pink));
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    font-family: 'JetBrains Mono', monospace;
+  }
+  .hero-stat-lbl {
+    font-size: 0.78rem; color: #94a3b8; text-transform: uppercase;
+    letter-spacing: 0.08em; font-weight: 700; margin-top: 4px;
+  }
+
+  .hero-section { margin-bottom: 40px; }
+  .hero-section-title {
+    font-size: 1.3rem; font-weight: 800; margin-bottom: 16px;
+    display: flex; align-items: center; gap: 10px; padding: 0 4px;
+  }
+
+  .stars-grid {
+    display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 14px;
+  }
+  .star-card {
+    background: linear-gradient(135deg, rgba(8,40,88,0.6), rgba(8,30,68,0.6));
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(56,225,255,0.2);
+    border-radius: 16px; padding: 18px;
+    cursor: pointer; transition: all 0.3s;
+    display: flex; align-items: center; gap: 14px;
+    position: relative; overflow: hidden;
+  }
+  .star-card::before {
+    content: ''; position: absolute; inset: -2px;
+    background: conic-gradient(from var(--ang, 0deg), transparent 70%, var(--aqua), transparent);
+    border-radius: 18px; opacity: 0; transition: opacity 0.3s;
+    z-index: -1;
+  }
+  .star-card:hover { transform: translateY(-4px) scale(1.02); border-color: var(--aqua);
+    box-shadow: 0 10px 30px rgba(56,225,255,0.3); }
+  .star-card:hover::before { opacity: 0.5; animation: rotateGrad 2s linear infinite; }
+  .star-card .avatar { width: 52px; height: 52px; font-size: 1.1rem; }
+  .star-info { flex: 1; min-width: 0; }
+  .star-name { font-weight: 800; font-size: 1rem; }
+  .star-meta { font-size: 0.78rem; color: #94a3b8; margin-top: 2px; white-space: nowrap;
+    overflow: hidden; text-overflow: ellipsis; }
+  .star-medal { font-size: 1.2rem; }
+
   .fav-pill {
     display: inline-flex; align-items: center; gap: 8px;
     padding: 8px 16px; border-radius: 999px;
@@ -555,17 +603,52 @@
   .fav-pill:hover { transform: translateY(-3px); border-color: var(--aqua); box-shadow: 0 6px 18px rgba(56,225,255,0.25); }
   .fav-pill .fav-x { opacity: 0.5; margin-left: 4px; }
   .fav-pill .fav-x:hover { opacity: 1; color: var(--pink); }
+
   .hero-tips {
-    display: grid; grid-template-columns: repeat(auto-fit, minmax(200px,1fr));
-    gap: 14px; max-width: 800px; margin: 32px auto 0;
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(220px,1fr));
+    gap: 14px;
   }
   .hero-tip {
     background: rgba(8,40,88,0.4); border: 1px solid rgba(255,255,255,0.06);
-    border-radius: 14px; padding: 18px;
+    border-radius: 14px; padding: 20px;
+    transition: all 0.2s;
   }
-  .hero-tip-icon { font-size: 1.6rem; margin-bottom: 8px; }
-  .hero-tip-title { font-weight: 700; margin-bottom: 4px; }
-  .hero-tip-desc { font-size: 0.85rem; color: #94a3b8; }
+  .hero-tip:hover { transform: translateY(-3px); border-color: rgba(56,225,255,0.3); }
+  .hero-tip-icon { font-size: 1.8rem; margin-bottom: 10px; }
+  .hero-tip-title { font-weight: 800; margin-bottom: 4px; font-size: 1rem; }
+  .hero-tip-desc { font-size: 0.85rem; color: #94a3b8; line-height: 1.4; }
+  .hero-tip kbd {
+    background: rgba(56,225,255,0.15); border: 1px solid rgba(56,225,255,0.3);
+    padding: 1px 6px; border-radius: 4px; font-size: 0.75rem;
+    font-family: 'JetBrains Mono', monospace;
+  }
+
+  .how-steps {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 16px; counter-reset: step;
+  }
+  .how-step {
+    background: rgba(8,30,68,0.5); border: 1px solid rgba(255,255,255,0.06);
+    border-radius: 16px; padding: 20px; position: relative; padding-left: 56px;
+  }
+  .how-step::before {
+    counter-increment: step; content: counter(step);
+    position: absolute; left: 16px; top: 18px;
+    width: 30px; height: 30px; border-radius: 50%;
+    background: linear-gradient(135deg, var(--aqua), var(--aqua-2));
+    color: #03142e; display: flex; align-items: center; justify-content: center;
+    font-weight: 900; font-size: 1rem;
+  }
+  .how-title { font-weight: 800; margin-bottom: 4px; }
+  .how-desc { font-size: 0.85rem; color: #94a3b8; line-height: 1.4; }
+
+  .hero-footer {
+    text-align: center; margin-top: 40px; padding-top: 24px;
+    border-top: 1px solid rgba(255,255,255,0.06);
+    color: #64748b; font-size: 0.85rem;
+  }
+  .hero-footer a { color: var(--aqua); text-decoration: none; }
+  .hero-footer a:hover { text-decoration: underline; }
 
   /* Star button (favori) */
   .star-btn {
@@ -1005,52 +1088,138 @@ let comparePending = false;
 let firstSwimmer = null;
 
 // === Page d'accueil (état vide) ===
-const POPULAR = [
-  { iuf: '1370928', name: 'WATTIEZ Axel', sex: 'H', year: '1992', club: 'ASPTT STRASBOURG' },
+// Stars FFN (IUFs vérifiés via la recherche)
+const STARS = [
+  { iuf: '1376245', name: 'MARCHAND Léon', year: '2002', sex: 'H', club: 'DAUPHINS TOULOUSE OEC', medal: '🥇' },
+  { iuf: '564390',  name: 'MANAUDOU Florent', year: '1990', sex: 'H', club: 'CN MARSEILLE', medal: '🏅' },
+  { iuf: '1051158', name: 'NDOYE BROUARD Yohann', year: '2000', sex: 'H', club: 'CN ANNECY', medal: '🥈' },
+  { iuf: '882434',  name: 'WATTEL Marie', year: '1997', sex: 'F', club: 'CN MARSEILLE', medal: '🥇' },
+  { iuf: '1099660', name: 'BONNET Charlotte', year: '1995', sex: 'F', club: 'OLYMPIC NICE', medal: '🥈' },
+  { iuf: '1090929', name: 'GROUSSET Maxime', year: '1999', sex: 'H', club: 'CS CLICHY 92', medal: '🥇' },
 ];
+
 function renderHome() {
   document.querySelector('#side-toggle').classList.remove('visible');
   const favs = getFavs();
   const recent = getRecent();
-  const list = (favs.length ? favs : recent);
-  const heroFavs = list.length
-    ? `<div class="hero-fav-title">${favs.length ? '⭐ Tes favoris' : '🕒 Tes nageurs récents'}</div>
-       <div class="hero-favs">
-         ${list.slice(0, 12).map(s => `
-           <div class="fav-pill" data-iuf="${s.iuf}" data-name="${s.name}" data-sex="${s.sex||''}" data-year="${s.year||''}" data-club="${s.club||''}">
-             <div class="avatar ${s.sex==='F'?'f':'h'}" style="width:24px;height:24px;font-size:0.7rem">${initials(s.name)}</div>
-             ${s.name}
-             ${favs.length ? `<span class="fav-x" data-fav-remove="${s.iuf}">✕</span>` : ''}
-           </div>`).join('')}
-       </div>` : '';
+
+  const favSection = favs.length ? `
+    <div class="hero-section">
+      <div class="hero-section-title">⭐ Tes favoris</div>
+      <div class="stars-grid">
+        ${favs.slice(0, 12).map(s => `
+          <div class="star-card" data-iuf="${s.iuf}" data-name="${s.name}" data-sex="${s.sex||''}" data-year="${s.year||''}" data-club="${s.club||''}">
+            <div class="avatar ${s.sex==='F'?'f':'h'}">${initials(s.name)}</div>
+            <div class="star-info">
+              <div class="star-name">${s.name}</div>
+              <div class="star-meta">${s.year ? '('+s.year+') · ' : ''}${s.club||''}</div>
+            </div>
+            <span class="fav-x" data-fav-remove="${s.iuf}" title="Retirer">✕</span>
+          </div>`).join('')}
+      </div>
+    </div>` : '';
+
+  const recentSection = (!favs.length && recent.length) ? `
+    <div class="hero-section">
+      <div class="hero-section-title">🕒 Récemment consultés</div>
+      <div class="stars-grid">
+        ${recent.slice(0, 6).map(s => `
+          <div class="star-card" data-iuf="${s.iuf}" data-name="${s.name}" data-sex="${s.sex||''}" data-year="${s.year||''}" data-club="${s.club||''}">
+            <div class="avatar ${s.sex==='F'?'f':'h'}">${initials(s.name)}</div>
+            <div class="star-info">
+              <div class="star-name">${s.name}</div>
+              <div class="star-meta">${s.year ? '('+s.year+') · ' : ''}${s.club||''}</div>
+            </div>
+          </div>`).join('')}
+      </div>
+    </div>` : '';
+
   result.innerHTML = `
     <div class="hero">
-      ${heroFavs}
-      <div class="hero-tips">
-        <div class="hero-tip">
-          <div class="hero-tip-icon">🔍</div>
-          <div class="hero-tip-title">Recherche maline</div>
-          <div class="hero-tip-desc">Tape "Léon Marchand" ou "Marchand Léon", avec ou sans accent</div>
+      <div class="hero-stats">
+        <div class="hero-stat">
+          <div class="hero-stat-num">+10K</div>
+          <div class="hero-stat-lbl">nageurs FFN</div>
         </div>
-        <div class="hero-tip">
-          <div class="hero-tip-icon">⚔️</div>
-          <div class="hero-tip-title">Mode battle</div>
-          <div class="hero-tip-desc">Compare deux nageurs côte à côte sur radar</div>
+        <div class="hero-stat">
+          <div class="hero-stat-num">25</div>
+          <div class="hero-stat-lbl">ans d'archives</div>
         </div>
-        <div class="hero-tip">
-          <div class="hero-tip-icon">⭐</div>
-          <div class="hero-tip-title">Favoris</div>
-          <div class="hero-tip-desc">Mets en favori, retrouve-les en accueil</div>
+        <div class="hero-stat">
+          <div class="hero-stat-num">100%</div>
+          <div class="hero-stat-lbl">officiel & gratuit</div>
         </div>
-        <div class="hero-tip">
-          <div class="hero-tip-icon">⌨️</div>
-          <div class="hero-tip-title">Raccourcis</div>
-          <div class="hero-tip-desc"><kbd>/</kbd> recherche · <kbd>T</kbd> thème · <kbd>Esc</kbd> fermer</div>
+      </div>
+
+      ${favSection}
+      ${recentSection}
+
+      <div class="hero-section">
+        <div class="hero-section-title">🌟 Stars de la natation française</div>
+        <div class="stars-grid">
+          ${STARS.map(s => `
+            <div class="star-card" data-iuf="${s.iuf}" data-name="${s.name}" data-sex="${s.sex}" data-year="${s.year}" data-club="${s.club}">
+              <div class="avatar ${s.sex==='F'?'f':'h'}">${initials(s.name)}</div>
+              <div class="star-info">
+                <div class="star-name">${s.name}</div>
+                <div class="star-meta">(${s.year}) · ${s.club}</div>
+              </div>
+              <span class="star-medal">${s.medal}</span>
+            </div>`).join('')}
         </div>
+      </div>
+
+      <div class="hero-section">
+        <div class="hero-section-title">⚡ Comment ça marche</div>
+        <div class="how-steps">
+          <div class="how-step">
+            <div class="how-title">Cherche un nageur</div>
+            <div class="how-desc">Tape un nom ou prénom (3 lettres min). On gère les accents et l'ordre prénom/nom.</div>
+          </div>
+          <div class="how-step">
+            <div class="how-title">Découvre sa carrière</div>
+            <div class="how-desc">Records personnels, podium top 3, niveau, badges débloqués, splits par 50m.</div>
+          </div>
+          <div class="how-step">
+            <div class="how-title">Compare ou partage</div>
+            <div class="how-desc">Mode battle ⚔️ contre un autre nageur, ou exporte la fiche en image PNG.</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="hero-section">
+        <div class="hero-section-title">💡 Astuces</div>
+        <div class="hero-tips">
+          <div class="hero-tip">
+            <div class="hero-tip-icon">🔍</div>
+            <div class="hero-tip-title">Recherche maline</div>
+            <div class="hero-tip-desc">"Léon Marchand" ou "Marchand Léon", avec ou sans accent — ça marche toujours</div>
+          </div>
+          <div class="hero-tip">
+            <div class="hero-tip-icon">⌨️</div>
+            <div class="hero-tip-title">Raccourcis clavier</div>
+            <div class="hero-tip-desc"><kbd>/</kbd> recherche · <kbd>T</kbd> thème · <kbd>D</kbd> détails · <kbd>Esc</kbd> ferme</div>
+          </div>
+          <div class="hero-tip">
+            <div class="hero-tip-icon">🏆</div>
+            <div class="hero-tip-title">Niveaux & succès</div>
+            <div class="hero-tip-desc">Bronze → Argent → Or → Diamant → Élite. Débloque 13 succès rares.</div>
+          </div>
+          <div class="hero-tip">
+            <div class="hero-tip-icon">🎮</div>
+            <div class="hero-tip-title">Easter egg</div>
+            <div class="hero-tip-desc">Tape ↑↑↓↓←→←→ B A pour activer un mode secret 😏</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="hero-footer">
+        Données depuis <a href="https://ffn.extranat.fr/" target="_blank">ffn.extranat.fr</a> · Site non-officiel · Made with 🏊 in France
       </div>
     </div>
   `;
-  result.querySelectorAll('.fav-pill').forEach(el => {
+
+  result.querySelectorAll('.star-card').forEach(el => {
     el.addEventListener('click', e => {
       if (e.target.classList.contains('fav-x')) {
         const id = e.target.dataset.favRemove;
