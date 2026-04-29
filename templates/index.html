@@ -126,7 +126,8 @@
 
   .container { position: relative; z-index: 2; max-width: 1200px; margin: 0 auto; padding: 32px 24px 80px; }
 
-  header { text-align: center; margin-bottom: 40px; }
+  header { text-align: center; margin-bottom: 40px; padding-top: 30px; }
+  @media (max-width: 768px) { header { padding-top: 50px; } }
   .logo {
     display: inline-flex; align-items: center; gap: 12px;
     font-size: 2.8rem; font-weight: 900; letter-spacing: -0.02em;
@@ -495,6 +496,71 @@
   body.light thead th { background: rgba(56,189,248,0.15); }
   body.light .stat-label, body.light .stat-sub { color: #64748b; }
   body.light .heatmap-cell { background: rgba(0,0,0,0.05); }
+
+  /* Burger menu button */
+  .menu-toggle {
+    position: fixed; top: 24px; left: 24px; z-index: 250;
+    width: 46px; height: 46px; border-radius: 12px;
+    background: rgba(8,40,88,0.7); backdrop-filter: blur(14px);
+    border: 1px solid rgba(56,225,255,0.3);
+    cursor: pointer; padding: 12px;
+    display: flex; flex-direction: column; justify-content: space-between;
+    transition: all 0.3s;
+  }
+  .menu-toggle:hover { border-color: var(--aqua); transform: scale(1.05); }
+  .menu-toggle span {
+    display: block; height: 2px; width: 100%;
+    background: var(--aqua); border-radius: 2px;
+    transition: all 0.3s;
+  }
+  .menu-toggle.open span:nth-child(1) { transform: translateY(8px) rotate(45deg); }
+  .menu-toggle.open span:nth-child(2) { opacity: 0; }
+  .menu-toggle.open span:nth-child(3) { transform: translateY(-8px) rotate(-45deg); }
+  body.light .menu-toggle { background: rgba(255,255,255,0.85); border-color: rgba(56,189,248,0.5); }
+
+  /* Nav menu (slide left) */
+  .nav-menu {
+    position: fixed; top: 0; left: -340px; width: 320px; height: 100vh;
+    z-index: 240; padding: 24px 20px;
+    background: linear-gradient(180deg, rgba(3,20,46,0.97), rgba(8,30,68,0.97));
+    backdrop-filter: blur(20px);
+    border-right: 1px solid rgba(56,225,255,0.25);
+    box-shadow: 16px 0 48px rgba(0,0,0,0.5);
+    transition: left 0.4s cubic-bezier(.2,.7,.2,1);
+    display: flex; flex-direction: column;
+  }
+  .nav-menu.open { left: 0; }
+  body.light .nav-menu { background: linear-gradient(180deg, rgba(255,255,255,0.97), rgba(231,244,251,0.97)); }
+  .nav-header {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 24px; padding-bottom: 16px;
+    border-bottom: 1px solid rgba(56,225,255,0.15);
+  }
+  .nav-items { display: flex; flex-direction: column; gap: 6px; flex: 1; }
+  .nav-item {
+    display: flex; align-items: center; gap: 12px;
+    padding: 12px 14px; border-radius: 10px;
+    background: transparent; border: 1px solid transparent;
+    color: inherit; cursor: pointer; font-family: inherit;
+    font-size: 0.95rem; font-weight: 600; text-align: left;
+    transition: all 0.2s;
+  }
+  .nav-item:hover {
+    background: rgba(56,225,255,0.1);
+    border-color: rgba(56,225,255,0.25);
+    transform: translateX(4px);
+  }
+  .nav-footer {
+    padding-top: 16px; border-top: 1px solid rgba(255,255,255,0.06);
+    color: #64748b; font-size: 0.78rem; text-align: center;
+  }
+  .nav-footer a { color: var(--aqua); text-decoration: none; }
+  .nav-overlay {
+    position: fixed; inset: 0; background: rgba(0,0,0,0.5);
+    backdrop-filter: blur(2px); z-index: 230;
+    opacity: 0; pointer-events: none; transition: opacity 0.3s;
+  }
+  .nav-overlay.open { opacity: 1; pointer-events: auto; }
 
   /* Theme toggle */
   .theme-toggle {
@@ -893,7 +959,33 @@
 <div class="waves"></div>
 <div class="cursor-dot" id="cursor-dot"></div>
 <div class="cursor-ring" id="cursor-ring"></div>
+<button class="menu-toggle" id="menu-toggle" title="Menu (M)">
+  <span></span><span></span><span></span>
+</button>
 <button class="theme-toggle" id="theme-toggle" title="Changer de thème (T)">🌙</button>
+
+<aside class="nav-menu" id="nav-menu">
+  <div class="nav-header">
+    <div class="logo" style="font-size: 1.5rem">
+      <span class="logo-icon" style="font-size: 1.4rem">🏊</span>
+      <span>NageurStats</span>
+    </div>
+    <button class="panel-close" id="nav-close">✕</button>
+  </div>
+  <nav class="nav-items">
+    <button class="nav-item" data-nav="home">🏠 <span>Accueil</span></button>
+    <button class="nav-item" data-nav="favs">⭐ <span>Mes favoris</span></button>
+    <button class="nav-item" data-nav="recent">🕒 <span>Récents</span></button>
+    <button class="nav-item" data-nav="search">🔍 <span>Recherche</span></button>
+    <button class="nav-item" data-nav="theme">🌗 <span>Changer de thème</span></button>
+    <button class="nav-item" data-nav="share">📤 <span>Partager le site</span></button>
+    <button class="nav-item" data-nav="about">ℹ️ <span>À propos</span></button>
+  </nav>
+  <div class="nav-footer">
+    Données <a href="https://ffn.extranat.fr/" target="_blank">FFN</a> · v1.0
+  </div>
+</aside>
+<div class="nav-overlay" id="nav-overlay"></div>
 <button class="side-toggle" id="side-toggle">🏅 Détails &amp; Succès</button>
 <div class="panel-overlay" id="panel-overlay"></div>
 <aside class="side-panel" id="side-panel">
@@ -1048,6 +1140,15 @@ function applyTheme(theme) {
   localStorage.setItem(STORAGE_THEME, theme);
 }
 applyTheme(localStorage.getItem(STORAGE_THEME) || 'dark');
+
+// === Détection appareil tactile ===
+const IS_TOUCH = 'ontouchstart' in window || navigator.maxTouchPoints > 0 || window.matchMedia('(hover: none)').matches;
+if (IS_TOUCH) {
+  const dot = document.querySelector('#cursor-dot');
+  const ring = document.querySelector('#cursor-ring');
+  if (dot) dot.remove();
+  if (ring) ring.remove();
+}
 
 // === Custom cursor ===
 const cDot = document.querySelector('#cursor-dot');
@@ -1305,6 +1406,82 @@ function renderHome() {
     });
   });
 }
+
+// === Burger nav menu ===
+const navMenu = document.querySelector('#nav-menu');
+const navOverlay = document.querySelector('#nav-overlay');
+const menuToggleBtn = document.querySelector('#menu-toggle');
+function openNav() { navMenu.classList.add('open'); navOverlay.classList.add('open'); menuToggleBtn.classList.add('open'); }
+function closeNav() { navMenu.classList.remove('open'); navOverlay.classList.remove('open'); menuToggleBtn.classList.remove('open'); }
+menuToggleBtn.addEventListener('click', () => navMenu.classList.contains('open') ? closeNav() : openNav());
+document.querySelector('#nav-close').addEventListener('click', closeNav);
+navOverlay.addEventListener('click', closeNav);
+
+document.querySelectorAll('.nav-item').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const action = btn.dataset.nav;
+    closeNav();
+    switch(action) {
+      case 'home':
+        const url = new URL(window.location);
+        url.searchParams.delete('iuf'); url.searchParams.delete('name');
+        window.history.replaceState({}, '', url);
+        document.querySelector('#search').value = '';
+        renderHome();
+        break;
+      case 'favs':
+      case 'recent':
+        renderHome();
+        setTimeout(() => {
+          const sel = action === 'favs' ? '⭐ Tes favoris' : '🕒 Récemment';
+          const titles = document.querySelectorAll('.hero-section-title');
+          for (const t of titles) {
+            if (t.textContent.includes(sel.replace(/[^\w]/g, ''))) {
+              t.scrollIntoView({ behavior: 'smooth', block: 'center' });
+              break;
+            }
+          }
+        }, 100);
+        break;
+      case 'search':
+        document.querySelector('#search').focus();
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+        break;
+      case 'theme':
+        applyTheme(document.body.classList.contains('light') ? 'dark' : 'light');
+        break;
+      case 'share':
+        if (navigator.share) {
+          navigator.share({ title: 'NageurStats', text: 'Tracker FFN — toute la carrière de tes nageurs préférés', url: window.location.origin });
+        } else {
+          navigator.clipboard.writeText(window.location.origin);
+          alert('Lien copié : ' + window.location.origin);
+        }
+        break;
+      case 'about':
+        result.innerHTML = `
+          <div class="swimmer-card" style="text-align:center">
+            <h2 style="margin-bottom:16px">ℹ️ À propos</h2>
+            <p style="color:#cbd5e1;line-height:1.7;max-width:600px;margin:0 auto">
+              <strong>NageurStats</strong> est un tracker non-officiel des performances de natation française basé sur la base ouverte de la <a href="https://ffn.extranat.fr/" target="_blank" style="color:var(--aqua)">FFN</a>.<br><br>
+              Tape un nom, vois la carrière complète : records personnels, podium, niveau, succès, splits par 50m, comparaison entre nageurs.<br><br>
+              <span style="color:#94a3b8;font-size:0.9rem">Données depuis 2000 · Actualisées en temps réel · Aucune donnée stockée côté serveur</span>
+            </p>
+            <div class="actions-row" style="justify-content:center;margin-top:20px">
+              <button class="btn btn-primary" onclick="renderHome()">← Retour</button>
+            </div>
+          </div>`;
+        break;
+    }
+  });
+});
+
+document.addEventListener('keydown', e => {
+  if (e.target.tagName === 'INPUT') return;
+  if (e.key.toLowerCase() === 'm') {
+    navMenu.classList.contains('open') ? closeNav() : openNav();
+  }
+});
 
 // === Side panel toggle ===
 const sidePanel = document.querySelector('#side-panel');
